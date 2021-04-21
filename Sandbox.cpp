@@ -88,16 +88,21 @@ int main(int argc, const char* argv[], const char* env[]) {
 	{
 		std::string arg = argv[i];
 
-		if (arg == "-server")
+		if (arg == "--server")
 		{
 			runServer = true;
+		}
+
+		if (arg == "--client")
+		{
+			runServer = false;
 		}
 	}
 
 	if (runServer)
 	{
-		std::cout << "Creating the secAcceptor..." << std::endl;
-		net::SecAcceptor acceptor(10000, sessionFunc, nullptr, nullptr);
+		std::cout << "Creating secAcceptor..." << std::endl;
+		net::SecAcceptor acceptor("10000", sessionFunc, nullptr, nullptr);
 		while (true)
 		{
 			std::cout << "Waiting for connection..." << std::endl;
@@ -241,7 +246,8 @@ int main(int argc, const char* argv[], const char* env[]) {
 						}
 						st.conVar.notify_one();
 					},
-					&st);
+					&st
+						);
 
 				for (int i = 0; i < 10; ++i)
 				{
