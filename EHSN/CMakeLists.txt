@@ -69,7 +69,7 @@ elseif (WIN32)
 	)
 	target_link_directories (
 		EHSN PUBLIC 
-		"C:\\dev\\vendor-libs\\openssl\\lib"
+		"C:\\dev\\vendor-libs\\openssl"
 	)
 endif ()
 
