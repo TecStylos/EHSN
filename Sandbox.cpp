@@ -67,7 +67,8 @@ void sessionFunc(Ref<net::SecSocket> sock, void* pParam) {
 		[](net::Packet pack, bool success, void* pParam)
 		{
 			auto& queue = *(net::PacketQueue*)pParam;
-			queue.push(pack.header.packetType, pack.header.priorityLevel, pack.header.flags, pack.buffer);
+			pack.header.packetType = net::SPT_PING_REPLY;
+			queue.push(pack.header, pack.buffer);
 		},
 		&queue
 			);
@@ -233,7 +234,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 				} st;
 				queue.setRecvCallback
 				(
-					net::SPT_PING,
+					net::SPT_PING_REPLY,
 					[](net::Packet pack, bool success, void* pParam)
 					{
 						auto& st = *(LambdaStruct*)pParam;
