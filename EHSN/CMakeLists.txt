@@ -56,7 +56,6 @@ if (UNIX)
 
 	target_compile_options (
 		EHSN PUBLIC 
-		"$<$<CONFIG:RelWithDebInfo>: -O2 -march=native -mtune=native>"
 	)
 elseif (WIN32)
 	set (OPENSSL_USE_STATIC_LIBS TRUE)
