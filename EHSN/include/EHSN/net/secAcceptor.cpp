@@ -2,8 +2,8 @@
 
 namespace net {
 
-	SecAcceptor::SecAcceptor(unsigned short port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb)
-		: m_acceptor(IOContext::get(), tcp::endpoint(tcp::v4(), port)), m_sFunc(sFunc), m_pParam(pParam), m_ecb(ecb)
+	SecAcceptor::SecAcceptor(const std::string& port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb)
+		: m_acceptor(IOContext::get(), tcp::endpoint(tcp::v4(), std::stoi(port))), m_sFunc(sFunc), m_pParam(pParam), m_ecb(ecb)
 	{
 		assert(m_sFunc != nullptr);
 

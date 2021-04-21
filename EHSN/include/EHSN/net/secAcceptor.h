@@ -24,7 +24,7 @@ namespace net {
 		* @param pParam User defined data that can be used by sFunc and ecb. May be NULL.
 		* @param ecb User defined exception callback for non-handled std::exception's in sFunc. May be NULL.
 		*/
-		SecAcceptor(unsigned short port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb);
+		SecAcceptor(const std::string& port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb);
 		~SecAcceptor() = default;
 	public:
 		/*
