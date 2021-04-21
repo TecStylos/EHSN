@@ -50,16 +50,19 @@ if (UNIX)
 	find_package (Threads REQUIRED)
 	target_link_libraries(EHSN PRIVATE Threads::Threads)
 	
+	set (OPENSSL_USE_STATIC_LIBS TRUE)
 	find_package (OpenSSL REQUIRED)
 	target_link_libraries(EHSN PRIVATE OpenSSL::SSL)
 
 	target_compile_options (
 		EHSN PUBLIC 
-		"-O2"
-		"-march=native"
-		"-mtune=native"
+		"$<$<CONFIG:Release>: -O2 -march=native -mtune=native>"
 	)
 elseif (WIN32)
+	set (OPENSSL_USE_STATIC_LIBS TRUE)
+	find_package(OpenSSL REQUIRED)
+	target_link_libraries(EHSN PUBLIC OpenSSL::SSL)
+
 	target_include_directories (
 		EHSN PUBLIC
 		"C:\\dev\\vendor-libs\\openssl\\include"
