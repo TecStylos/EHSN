@@ -1,0 +1,3 @@
+[submodule "EHSN/vendor/asio"]
+	path = EHSN/vendor/asio
+	url = https://github.com/TecStylos/asio.git
