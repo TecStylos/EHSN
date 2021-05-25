@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 
-#include "EHSN/crypto/aes.h"
+#include "EHSN/crypto.h"
 
 #include "ioContext.h"
 #include "packets.h"
@@ -28,8 +28,10 @@ namespace net {
 	public:
 		/*
 		* Constructor of SecSocket.
+		* 
+		* @param rdg Random data generator used for generating the keys.
 		*/
-		SecSocket();
+		SecSocket(crypto::RandomDataGenerator rdg = crypto::defaultRDG);
 		~SecSocket() = default;
 	public:
 		/*
@@ -173,22 +175,13 @@ namespace net {
 		*/
 		bool escKeyExchange(uint32_t aesKeySize, uint32_t aesKeyEchoSize);
 	private:
-		/*
-		* Fills the buffer with random data
-
-		* @param buffer Buffer to be filled with random data.
-		* @param nBytes Number of bytes to generate.
-		*/
-		static void defaultRDG(char* buffer, uint64_t nBytes);
-	private:
 		tcp::socket m_sock;
 		bool m_isConnected = false;
 		Ref<crypto::aes::Key> m_aesKey;
 	private:
 		DataMetrics m_dataMetrics;
 	private:
-		typedef void(*RandomDataGenerator)(char*, uint64_t);
-		RandomDataGenerator m_rdg = defaultRDG;
+		crypto::RandomDataGenerator m_rdg;
 	private:
 		friend class SecAcceptor;
 	};

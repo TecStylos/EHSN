@@ -4,8 +4,8 @@
 
 namespace net {
 
-	SecSocket::SecSocket()
-		: m_sock(IOContext::get())
+	SecSocket::SecSocket(crypto::RandomDataGenerator rdg)
+		: m_sock(IOContext::get()), m_rdg(rdg)
 	{}
 
 	bool SecSocket::connect(const std::string& host, const std::string& port, bool noDelay)
@@ -278,12 +278,6 @@ namespace net {
 		}
 
 		return true;
-	}
-
-	void SecSocket::defaultRDG(char* buffer, uint64_t nBytes)
-	{
-		for (uint64_t i = 0; i < nBytes; ++i)
-			buffer[i] = rand() % 256;
 	}
 
 } // namespace net
