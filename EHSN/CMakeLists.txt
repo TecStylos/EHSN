@@ -46,7 +46,7 @@ elseif (WIN32) # Windows specific
 	# OpenSSL
 	set (OPENSSL_USE_STATIC_LIBS TRUE)
 	find_package(OpenSSL REQUIRED)
-	target_link_libraries(EHSN PUBLIC OpenSSL::SSL)
+	target_link_libraries(EHSN PUBLIC OpenSSL::SSL crypt32)
 
 	# Include directories
 	target_include_directories (

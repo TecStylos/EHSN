@@ -195,12 +195,12 @@ int main(int argc, const char* argv[], const char* env[]) {
 			{
 				std::cout << "    Running data test..." << std::endl;
 
-				constexpr uint64_t packetSize = 10000000;
+				constexpr uint64_t packetSize = 100000000;
 				uint64_t timeSum = 0;
 				uint64_t nPackets = 0;
 
 				std::cout << "     Sending packets..." << std::endl;
-				for (int i = 0; i < 10; ++i)
+				for (int i = 0; i < 100; ++i)
 				{
 					auto buffer = queue.acquireBuffer(packetSize);
 					buffer.write(i);
