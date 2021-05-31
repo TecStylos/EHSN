@@ -182,7 +182,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 			queue.disconnect();
 			std::cout << "   Disconnected from host!" << std::endl;
 		}
-		else if (*it == "test")
+		else if (*it == "benchmark")
 		{
 			++it;
 			if (it == cmdParts.end())
@@ -200,7 +200,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 				uint64_t nPackets = 0;
 
 				std::cout << "     Sending packets..." << std::endl;
-				for (int i = 0; i < 100; ++i)
+				for (int i = 0; i < 10; ++i)
 				{
 					auto buffer = queue.acquireBuffer(packetSize);
 					buffer.write(i);

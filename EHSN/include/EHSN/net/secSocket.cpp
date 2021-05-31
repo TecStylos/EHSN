@@ -62,7 +62,7 @@ namespace net {
 		if (nBytesFullChunks != 0)
 		{
 			nRead += readRaw(buffer, nBytesFullChunks);
-			crypto::aes::decrypt(buffer, (int)nBytesFullChunks, m_aesKey);
+			autoDecrypt(buffer, (int)nBytesFullChunks, buffer, m_aesKey);
 		}
 
 		uint64_t nRemaining = nBytes % AES_BLOCK_SIZE;
@@ -70,7 +70,7 @@ namespace net {
 		{
 			char temp[AES_BLOCK_SIZE];
 			uint64_t nReadEnc = readRaw(temp, AES_BLOCK_SIZE);
-			crypto::aes::decryptBlock(temp, m_aesKey);
+			crypto::aes::decryptBlock(temp, temp, m_aesKey);
 			memcpy((char*)buffer + nBytesFullChunks, temp, nRemaining);
 
 			if (nReadEnc != 0)
@@ -87,32 +87,30 @@ namespace net {
 
 	uint64_t SecSocket::writeSecure(void* buffer, uint64_t nBytes)
 	{
+		uint64_t nWritten = 0;
+
+		uint64_t completeBlocks = nBytes / AES_BLOCK_SIZE;
+		uint64_t nBytesFullBlocks = completeBlocks * AES_BLOCK_SIZE;
+
+		if (nBytesFullBlocks != 0)
 		{
-			uint64_t nWritten = 0;
-
-			uint64_t completeBlocks = nBytes / AES_BLOCK_SIZE;
-			uint64_t nBytesFullBlocks = completeBlocks * AES_BLOCK_SIZE;
-
-			if (nBytesFullBlocks != 0)
-			{
-				crypto::aes::encrypt(buffer, (int)nBytesFullBlocks, m_aesKey);
-				nWritten += writeRaw(buffer, nBytesFullBlocks);
-			}
-
-			uint64_t nRemaining = nBytes % AES_BLOCK_SIZE;
-			if (nRemaining != 0)
-			{
-				char temp[AES_BLOCK_SIZE];
-				memcpy(temp, (char*)buffer + nBytesFullBlocks, nRemaining);
-				crypto::aes::encryptBlock(temp, m_aesKey);
-				uint64_t nWrittenEnc = writeRaw(temp, AES_BLOCK_SIZE);
-
-				if (nWrittenEnc != 0)
-					nWritten += nRemaining;
-			}
-
-			return nWritten;
+			autoEncrypt(buffer, (int)nBytesFullBlocks, buffer, m_aesKey);
+			nWritten += writeRaw(buffer, nBytesFullBlocks);
 		}
+
+		uint64_t nRemaining = nBytes % AES_BLOCK_SIZE;
+		if (nRemaining != 0)
+		{
+			char temp[AES_BLOCK_SIZE];
+			memcpy(temp, (char*)buffer + nBytesFullBlocks, nRemaining);
+			crypto::aes::encryptBlock(temp, temp, m_aesKey);
+			uint64_t nWrittenEnc = writeRaw(temp, AES_BLOCK_SIZE);
+
+			if (nWrittenEnc != 0)
+				nWritten += nRemaining;
+		}
+
+		return nWritten;
 	}
 
 	packets::IPAddress SecSocket::getRemoteIP() const
@@ -164,6 +162,16 @@ namespace net {
 		m_dataMetrics.addWritten(nWritten);
 
 		return nWritten;
+	}
+
+	void SecSocket::autoEncrypt(const void* clearData, int nBytes, void* cipherData, Ref<crypto::aes::Key> key)
+	{
+		crypto::aes::encryptThreaded(clearData, nBytes, cipherData, key, 4);
+	}
+
+	void SecSocket::autoDecrypt(const void* cipherData, int nBytes, void* clearData, Ref<crypto::aes::Key> key)
+	{
+		crypto::aes::decryptThreaded(cipherData, nBytes, clearData, key, 4);
 	}
 
 	void SecSocket::setConnected(bool state)

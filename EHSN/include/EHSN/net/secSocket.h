@@ -136,6 +136,31 @@ namespace net {
 		* @returns Number of bytes written to the socket.
 		*/
 		uint64_t writeRaw(const void* buffer, uint64_t nBytes);
+		
+		/*
+		* Encrypt nBytes of data.
+		* Automatically chooses the threaded/non-threaded version.
+		* clearData and cipherData may point to the same buffer.
+		*
+		* @param clearData Pointer to the data to encrypt.
+		* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
+		* @param cipherData Address where the encrypted data gets stored.
+		* @param key Key to encrypt the data with.
+		* @param nThreads Number of threads to use. Must be smaller or equal to CRYPTO_MAX_THREADS
+		*/
+		void autoEncrypt(const void* clearData, int nBytes, void* cipherData, Ref<crypto::aes::Key> key);
+		/*
+		* Decrypt nBytes of data.
+		* Automatically chooses the threaded/non-threaded version.
+		* cipherData and clearData may point to the same buffer.
+		*
+		* @param cipherData Pointer to the data to decrypt.
+		* @param nBytes Number of bytes to decrypt. Must be a multiple of AES_BLOCK_SIZE!
+		* @param clearData Address where the decrypted data gets stored.
+		* @param key Key to decrypt the data with.
+		* @param nThreads Number of threads to use. Must be smaller or equal to CRYPTO_MAX_THREADS
+		*/
+		void autoDecrypt(const void* cipherData, int nBytes, void* clearData,  Ref<crypto::aes::Key> key);
 	private:
 		/*
 		* Set the internal connected state.

@@ -3,11 +3,17 @@
 
 #include "aesKey.h"
 
+#define CRYPTO_MAX_THREADS 16
+
 namespace crypto {
 	namespace aes {
+
+		typedef void (*CryptBlockFunc)(const void*, void*, Ref<Key>);
+		typedef void (*CryptFunc)(const void*, int, void*, Ref<Key>);
 		
 		/*
 		* Encrypt a data block.
+		* clearData and cipherData may point to the same buffer.
 		*
 		* @param clearData Pointer to the data to encrypt.
 		* @param cipherData Address where the encrypted data gets stored.
@@ -17,6 +23,7 @@ namespace crypto {
 
 		/*
 		* Decrypt a data block.
+		* cipherData and clearData may point to the same buffer.
 		*
 		* @param cipherData Pointer to the data to decrypt.
 		* @param clearData Address where the decrypted data gets stored.
@@ -25,56 +32,69 @@ namespace crypto {
 		inline void decryptBlock(const void* cipherData, void* clearData, Ref<Key> key) { AES_decrypt((const unsigned char*)cipherData, (unsigned char*)clearData, &key->m_keyDec); }
 
 		/*
-		* Encrypt a data block in-place.
+		* En-/Decrypt nBytes of data.
+		* from and to may point to the same buffer.
 		*
-		* @param data Pointer to the data to encrypt.
+		* @param from Pointer to the source data.
+		* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
+		* @param to Pointer to the destination.
 		* @param key Key to encrypt the data with.
 		*/
-		inline void encryptBlock(void* data, Ref<Key> key) { encryptBlock(data, data, key); }
-		/*
-		* Decrypt a data block in-place.
-		*
-		* @param data Pointer to the data to decrypt.
-		* @param key Key to decrypt the data with.
-		*/
-		inline void decryptBlock(void* data, Ref<Key> key) { decryptBlock(data, data, key); }
-
+		void crypt(const void* from, int nBytes, void* to, Ref<Key> key, CryptBlockFunc func);
 		/*
 		* Encrypt nBytes of data.
+		* clearData and cipherData may point to the same buffer.
 		*
 		* @param clearData Pointer to the data to encrypt.
 		* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
 		* @param cipherData Address where the encrypted data gets stored.
 		* @param key Key to encrypt the data with.
 		*/
-		void encrypt(const void* clearData, int nBytes, void* cipherData, Ref<Key> key);
+		inline void encrypt(const void* clearData, int nBytes, void* cipherData, Ref<Key> key) { crypt(clearData, nBytes, cipherData, key, &encryptBlock); }
 		/*
 		* Decrypt nBytes of data.
+		* cipherData and clearData may point to the same buffer.
 		*
 		* @param cipherData Pointer to the data to decrypt.
 		* @param nBytes Number of bytes to decrypt. Must be a multiple of AES_BLOCK_SIZE!
 		* @param clearData Address where the decrypted data gets stored.
 		* @param key Key to decrypt the data with.
 		*/
-		void decrypt(const void* cipherData, int nBytes, void* clearData, Ref<Key> key);
+		inline void decrypt(const void* cipherData, int nBytes, void* clearData, Ref<Key> key) { crypt(cipherData, nBytes, clearData, key, &decryptBlock); }
 
 		/*
-		* Encrypt nBytes of data in-place.
+		* En-/Decrypt nBytes of data.
+		* from and to may point to the same buffer.
 		*
-		* @param data Pointer to the data to encrypt.
+		* @param from Pointer to the source data.
 		* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
+		* @param to Pointer to the destination.
 		* @param key Key to encrypt the data with.
+		* @param nThreads Number of threads to use. Must be smaller or equal to CRYPTO_MAX_THREADS
 		*/
-		inline void encrypt(void* data, int nBytes, Ref<Key> key) { encrypt(data, nBytes, data, key); }
+		void cryptThreaded(const void* from, int nBytes, void* to, Ref<Key> key, int nThreads, CryptFunc func);
 		/*
-		* Decrypt nBytes of data in-place.
+		* Encrypt nBytes of data.
+		* clearData and cipherData may point to the same buffer.
 		*
-		* @param data Pointer to the data to decrypt.
-		* @param nBytes Number of bytes to decrypt. Must be a multiple of AES_BLOCK_SIZE!
-		* @param key Key to decrypt the data with.
+		* @param clearData Pointer to the data to encrypt.
+		* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
+		* @param cipherData Address where the encrypted data gets stored.
+		* @param key Key to encrypt the data with.
+		* @param nThreads Number of threads to use. Must be smaller or equal to CRYPTO_MAX_THREADS
 		*/
-		inline void decrypt(void* data, int nBytes, Ref<Key> key) { decrypt(data, nBytes, data, key); }
-
+		inline void encryptThreaded(const void* clearData, int nBytes, void* cipherData, Ref<Key> key, int nThreads) { cryptThreaded(clearData, nBytes, cipherData, key, nThreads, &encrypt); }
+		/*
+		* Decrypt nBytes of data.
+		* cipherData and clearData may point to the same buffer.
+		*
+		* @param cipherData Pointer to the data to decrypt.
+		* @param nBytes Number of bytes to decrypt. Must be a multiple of AES_BLOCK_SIZE!
+		* @param clearData Address where the decrypted data gets stored.
+		* @param key Key to decrypt the data with.
+		* @param nThreads Number of threads to use. Must be smaller or equal to CRYPTO_MAX_THREADS
+		*/
+		inline void decryptThreaded(const void* cipherData, int nBytes, void* clearData, Ref<Key> key, int nThreads) { cryptThreaded(cipherData, nBytes, clearData, key, nThreads, &decrypt); }
 	} // namespace aes
 
 } // namespace crypto
