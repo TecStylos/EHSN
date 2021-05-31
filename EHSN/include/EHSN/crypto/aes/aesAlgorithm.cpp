@@ -25,7 +25,7 @@ namespace crypto {
 			int nBlocks = nBytes / AES_BLOCK_SIZE;
 			int nBlocksPerThread = nBlocks / nThreads;
 			int nBytesPerThread = nBlocksPerThread * AES_BLOCK_SIZE;
-			int nBytesLastThread = nBytes - nBytesPerThread * nThreads;
+			int nBytesLastThread = nBytes - nBytesPerThread * (nThreads - 1);
 
 			if (nBlocksPerThread == 0)
 			{
