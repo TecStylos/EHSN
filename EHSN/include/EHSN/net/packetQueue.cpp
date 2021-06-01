@@ -44,7 +44,7 @@ namespace net {
 		stop();
 	}
 
-	PacketID PacketQueue::push(PacketType packetType, PriorityLevel priorityLevel, Flags flags, PacketBuffer buffer)
+	PacketID PacketQueue::push(PacketType packetType, PriorityLevel priorityLevel, PacketFlags flags, PacketBuffer buffer)
 	{
 		PacketHeader header;
 		header.packetType = packetType;

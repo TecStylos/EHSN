@@ -13,10 +13,10 @@ namespace net {
 
 	typedef uint16_t PacketType;
 	typedef uint8_t PriorityLevel;
-	typedef uint8_t Flags;
+	typedef uint8_t PacketFlags;
 	typedef uint32_t PacketID;
 
-	enum : Flags {
+	enum : PacketFlags {
 		FLAG_PH_NONE = 0b00000000,
 		FLAG_PH_REMOVE_PREVIOUS = 0b00000001,
 		FLAG_PH_UNUSED_1 = 0b00000010, // FLAG_PH_SEND_IMMEDIATE
@@ -31,7 +31,7 @@ namespace net {
 	struct PacketHeader {
 		PacketType packetType = 0;
 		PriorityLevel priorityLevel = -1;
-		Flags flags = FLAG_PH_NONE;
+		PacketFlags flags = FLAG_PH_NONE;
 		PacketID packetID = 0;
 		uint64_t packetSize = 0;
 	};
@@ -118,7 +118,7 @@ namespace net {
 		* @param buffer Packet buffer holding the data to be sent.
 		* @returns The packed ID identifying the pushed packet.
 		*/
-		PacketID push(PacketType packetType, PriorityLevel priorityLevel, Flags flags, PacketBuffer buffer);
+		PacketID push(PacketType packetType, PriorityLevel priorityLevel, PacketFlags flags, PacketBuffer buffer);
 		PacketID push(PacketHeader& header, PacketBuffer buffer);
 		/*
 		* Pull a packet from the read-queue.
