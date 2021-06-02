@@ -253,9 +253,9 @@ int main(int argc, const char* argv[], const char* env[]) {
 				for (int i = 0; i < 10; ++i)
 				{
 					auto buffer = queue.acquireBuffer(sizeof(uint64_t));
-					uint64_t start = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+					uint64_t start = CURR_TIME_MS();
 					buffer.write(start);
-					queue.push(net::SPT_PING, 0, net::FLAG_PH_NONE, buffer);
+					queue.push(net::SPT_PING, 1, net::FLAG_PH_NONE, buffer);
 
 					std::unique_lock<std::mutex> lock(st.mtx);
 					st.conVar.wait(lock, [&st] { return st.gotPing; });
