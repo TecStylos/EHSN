@@ -3,7 +3,9 @@
 
 #include <memory>
 
-template <typename T>
-using Ref = std::shared_ptr<T>;
+namespace EHSN {
+	template <typename T>
+	using Ref = std::shared_ptr<T>;
+}
 
 #endif // REFERENCE_H

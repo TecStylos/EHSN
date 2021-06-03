@@ -55,19 +55,19 @@ std::vector<std::string> splitCommand(const std::string& command) {
 
 #define CURR_TIME_MS() std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count()
 
-enum CUSTOM_PACKET_TYPES : net::PacketType {
-	CPT_RAW_DATA = net::SPT_FIRST_FREE_PACKET_TYPE,
+enum CUSTOM_PACKET_TYPES : EHSN::net::PacketType {
+	CPT_RAW_DATA = EHSN::net::SPT_FIRST_FREE_PACKET_TYPE,
 };
 
-void sessionFunc(Ref<net::SecSocket> sock, void* pParam) {
-	net::PacketQueue queue(sock);
+void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
+	EHSN::net::PacketQueue queue(sock);
 
 	queue.setRecvCallback(
-		net::SPT_PING,
-		[](net::Packet pack, bool success, void* pParam)
+		EHSN::net::SPT_PING,
+		[](EHSN::net::Packet pack, bool success, void* pParam)
 		{
-			auto& queue = *(net::PacketQueue*)pParam;
-			pack.header.packetType = net::SPT_PING_REPLY;
+			auto& queue = *(EHSN::net::PacketQueue*)pParam;
+			pack.header.packetType = EHSN::net::SPT_PING_REPLY;
 			queue.push(pack.header, pack.buffer);
 		},
 		&queue
@@ -76,7 +76,7 @@ void sessionFunc(Ref<net::SecSocket> sock, void* pParam) {
 	while (sock->isConnected())
 	{
 		std::cout << "  Pulling buffer..." << std::endl;
-		net::Packet pack = queue.pull(CPT_RAW_DATA);
+		EHSN::net::Packet pack = queue.pull(CPT_RAW_DATA);
 	}
 
 	std::cout << "  Lost connection to client!" << std::endl;
@@ -103,7 +103,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 	if (runServer)
 	{
 		std::cout << "Creating secAcceptor..." << std::endl;
-		net::SecAcceptor acceptor("10000", sessionFunc, nullptr, nullptr);
+		EHSN::net::SecAcceptor acceptor("10000", sessionFunc, nullptr, nullptr);
 		while (true)
 		{
 			std::cout << "Waiting for connection..." << std::endl;
@@ -112,13 +112,13 @@ int main(int argc, const char* argv[], const char* env[]) {
 		}
 	}
 
-	auto sock = std::make_shared<net::SecSocket>();
+	auto sock = std::make_shared<EHSN::net::SecSocket>(EHSN::crypto::defaultRDG, std::thread::hardware_concurrency() / 2);
 
 	std::string host = "tecstylos.ddns.net";
 	std::string port = "10000";
 	bool noDelay = true;
 
-	net::PacketQueue queue(sock);
+	EHSN::net::PacketQueue queue(sock);
 
 	while (true)
 	{
@@ -206,7 +206,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					buffer.write(i);
 
 					uint64_t begin = CURR_TIME_MS();
-					queue.wait(1, queue.push(CPT_RAW_DATA, 1, net::FLAG_PH_NONE, buffer));
+					queue.wait(1, queue.push(CPT_RAW_DATA, 1, EHSN::net::FLAG_PH_NONE, buffer));
 					uint64_t end = CURR_TIME_MS();
 
 					timeSum += end - begin;
@@ -234,8 +234,8 @@ int main(int argc, const char* argv[], const char* env[]) {
 				} st;
 				queue.setRecvCallback
 				(
-					net::SPT_PING_REPLY,
-					[](net::Packet pack, bool success, void* pParam)
+					EHSN::net::SPT_PING_REPLY,
+					[](EHSN::net::Packet pack, bool success, void* pParam)
 					{
 						auto& st = *(LambdaStruct*)pParam;
 						uint64_t end = CURR_TIME_MS();
@@ -255,7 +255,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					auto buffer = queue.acquireBuffer(sizeof(uint64_t));
 					uint64_t start = CURR_TIME_MS();
 					buffer.write(start);
-					queue.push(net::SPT_PING, 1, net::FLAG_PH_NONE, buffer);
+					queue.push(EHSN::net::SPT_PING, 1, EHSN::net::FLAG_PH_NONE, buffer);
 
 					std::unique_lock<std::mutex> lock(st.mtx);
 					st.conVar.wait(lock, [&st] { return st.gotPing; });
@@ -271,7 +271,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					st.pingQueue.pop();
 				}
 
-				queue.setRecvCallback(net::SPT_PING, nullptr, nullptr);
+				queue.setRecvCallback(EHSN::net::SPT_PING, nullptr, nullptr);
 
 				std::cout << "   Number of collected pings: " << nPings << std::endl;
 				std::cout << "   Average ping: " << (pingSum / nPings) << " ms" << std::endl;

@@ -1,7 +1,9 @@
 #include "ioContext.h"
 
-namespace net {
+namespace EHSN {
+	namespace net {
 
-	IOContext IOContext::s_singleton;
+		IOContext IOContext::s_singleton;
 
-} // namespace net
+	} // namespace net
+} // namespace EHSN

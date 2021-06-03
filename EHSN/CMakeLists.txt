@@ -15,7 +15,7 @@ add_library (
 	"include/EHSN/net/packetQueue.cpp"
 	"include/EHSN/net/secAcceptor.cpp"
 	"include/EHSN/net/secSocket.cpp"
-)
+ "include/EHSN/ThreadPool.h" "include/EHSN/ThreadPool.cpp")
 
 # Cross-Platform Include Directories
 target_include_directories (
