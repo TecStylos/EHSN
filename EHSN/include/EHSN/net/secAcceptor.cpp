@@ -15,7 +15,7 @@ namespace net {
 		try
 		{
 			if (!establishSecureConnection(sock, keyPair))
-				throw std::exception();
+				throw std::exception("Unable to establish a secure connection!");
 
 			sFunc(sock, pParam);
 		}
