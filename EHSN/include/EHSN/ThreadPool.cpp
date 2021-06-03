@@ -2,7 +2,7 @@
 
 namespace EHSN {
 	ThreadPool::ThreadPool(uint32_t nThreads)
-		: m_threads(nThreads)
+		: m_threads(nThreads), m_terminateThreads(false), m_runningJobs(0)
 	{
 		for (auto& t : m_threads)
 			t = std::make_shared<std::thread>(&ThreadPool::threadFunc, this);

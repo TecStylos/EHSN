@@ -5,6 +5,8 @@
 #include <vector>
 #include <mutex>
 #include <functional>
+#include <condition_variable>
+#include <atomic>
 
 #include "Reference.h"
 
@@ -26,10 +28,10 @@ namespace EHSN {
 		std::mutex m_mtxWait;
 		std::condition_variable m_condWait;
 		std::mutex m_mtxJob;
-		std::atomic_bool m_terminateThreads = false;
+		std::atomic_bool m_terminateThreads;
 		std::condition_variable m_condJob;
 		std::queue<Job> m_jobs;
-		std::atomic_uint32_t m_runningJobs = 0;
+		std::atomic_uint32_t m_runningJobs;
 		std::vector<Ref<std::thread>> m_threads;
 	};
 }
