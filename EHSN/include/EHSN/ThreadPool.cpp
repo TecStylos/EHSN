@@ -42,6 +42,13 @@ namespace EHSN {
 		return (uint32_t)m_threads.size();
 	}
 
+	void ThreadPool::clear()
+	{
+		std::unique_lock<std::mutex> lock(m_mtxJob);
+		while (!m_jobs.empty())
+			m_jobs.pop();
+	}
+
 	void ThreadPool::threadFunc()
 	{
 		while (!m_terminateThreads)

@@ -22,6 +22,7 @@ namespace EHSN {
 		void pushJob(Job job);
 		void wait();
 		uint32_t size() const;
+		void clear();
 	private:
 		void threadFunc();
 	private:

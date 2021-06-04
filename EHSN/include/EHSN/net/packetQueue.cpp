@@ -9,9 +9,9 @@ namespace EHSN {
 		}
 
 		PacketQueue::PacketQueue(Ref<SecSocket> sock)
-			: m_sock(sock)
+			: m_sock(sock), m_sendPool(1), m_recvPool(1)
 		{
-			start();
+			pushRecvJob();
 		}
 
 		PacketQueue::~PacketQueue()
@@ -29,7 +29,6 @@ namespace EHSN {
 			disconnect();
 
 			bool ret = m_sock->connect(host, port, noDelay);
-			start();
 
 			return ret;
 		}
@@ -37,7 +36,6 @@ namespace EHSN {
 		void PacketQueue::disconnect()
 		{
 			m_sock->disconnect();
-			stop();
 		}
 
 		PacketID PacketQueue::push(PacketType packetType, PacketFlags flags, Ref<PacketBuffer> buffer)
@@ -51,17 +49,15 @@ namespace EHSN {
 
 		PacketID PacketQueue::push(PacketHeader& header, Ref<PacketBuffer> buffer)
 		{
-			header.packetID = m_nextPacketID++;
-			header.packetSize = buffer->size();
-			{
-				std::unique_lock<std::mutex> lock(m_mtxSendQueue);
-				m_sendQueue.emplace(header, buffer); // TODO: Check if remove_previous flag is set
+			Packet pack;
+			pack.header = header;
+			pack.header.packetID = m_nextPacketID++;
+			pack.header.packetSize = buffer->size();
+			pack.buffer = buffer;
 
-				m_sendAvail = true;
-			}
-			m_sendNotify.notify_one();
+			m_sendPool.pushJob(std::bind(&PacketQueue::sendFunc, this, pack));
 
-			return header.packetID;
+			return pack.header.packetID;
 		}
 
 		Packet PacketQueue::pull(PacketType packType)
@@ -79,7 +75,7 @@ namespace EHSN {
 				}
 				else
 				{
-					m_recvNotify.wait(lock, [this] { return m_recvAvail || m_stopThreads || !m_sock->isConnected(); });
+					m_recvNotify.wait(lock, [this] { return m_recvAvail || !m_sock->isConnected(); });
 					m_recvAvail = false;
 				}
 			}
@@ -98,20 +94,15 @@ namespace EHSN {
 
 		void PacketQueue::wait(PacketID packetID)
 		{
-			PacketHeader ph;
-			ph.packetID = packetID;
+			std::unique_lock<std::mutex> lock(m_mtxPacketIDBeingSent);
 
-			std::unique_lock<std::mutex> lock(m_mtxSendQueue);
-			m_sentNotify.wait(lock, [this, &ph] { return (m_sendQueue.find(ph) == m_sendQueue.end()) && (ph.packetID != m_currPacketIDBeingSent); });
+			m_sentNotify.wait(lock, [this, packetID](){ return packetID < m_currPacketIDBeingSent; });
 		}
 
 		void PacketQueue::clear()
 		{
-			{
-				std::unique_lock<std::mutex> lock(m_mtxSendQueue);
-				while (!m_sendQueue.empty())
-					m_sendQueue.erase(m_sendQueue.begin());
-			}
+			m_sendPool.clear();
+
 			{
 				std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
 				while (!m_recvQueue.empty())
@@ -154,6 +145,8 @@ namespace EHSN {
 
 		bool PacketQueue::callSentCallback(const Packet& pack, bool success)
 		{
+			setCurrentPacketBeingSent(m_currPacketIDBeingSent + 1);
+
 			std::unique_lock<std::mutex> lock(m_mtxSentCallbacks);
 
 			auto iterator = m_sentCallbacks.find(pack.header.packetType);
@@ -175,132 +168,84 @@ namespace EHSN {
 			return true;
 		}
 
-		void PacketQueue::sendFunc()
+		void PacketQueue::sendFunc(Packet packet)
 		{
-			while (m_sock->isConnected() && !m_stopThreads)
+			m_currPacketIDBeingSent = packet.header.packetID;
+
+			if (packet.buffer)
 			{
-				Packet pack;
+				if (!m_sock->writeSecure(&packet.header, sizeof(PacketHeader)))
 				{
-					std::unique_lock<std::mutex> lock(m_mtxSendQueue);
-					if (!m_sendQueue.empty())
-					{
-						auto pair = *m_sendQueue.begin();
-						pack.header = pair.first;
-						pack.buffer = pair.second;
-						m_sendQueue.erase(m_sendQueue.begin());
-					}
-					else
-					{
-						m_sendNotify.wait(lock, [this] { return m_sendAvail || m_stopThreads || !m_sock->isConnected(); });
-						m_sendAvail = false;
-					}
-					m_currPacketIDBeingSent = pack.header.packetID;
+					callSentCallback(packet, false);
+					return;
 				}
-				if (pack.buffer)
+				if (!m_sock->writeSecure(packet.buffer))
 				{
-					if (!m_sock->writeSecure(&pack.header, sizeof(pack.header)))
-					{
-						callSentCallback(pack, false);
-						break;
-					}
-
-					if (!m_sock->writeSecure(pack.buffer))
-					{
-						callSentCallback(pack, false);
-						break;
-					}
+					callSentCallback(packet, false);
+					return;
 				}
-				callSentCallback(pack, true);
-				setCurrentPacketBeingSent(0);
+				callSentCallback(packet, true);
 			}
-			if (!m_sock->isConnected())
-				notifyThreads();
-
-			setCurrentPacketBeingSent(0);
 		}
 
 		void PacketQueue::recvFunc()
 		{
-			while (m_sock->isConnected() && !m_stopThreads)
+			Packet pack;
+
+			if (!m_sock->isConnected())
+				return;
+
+			if (!m_sock->readSecure(&pack.header, sizeof(pack.header)))
+				return;
+
+			if (pack.header.packetSize > 0)
 			{
-				Packet pack;
+				pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
 
-				if (!m_sock->readSecure(&pack.header, sizeof(pack.header)))
-					break;
-
-				if (pack.header.packetSize > 0)
+				if (!m_sock->readSecure(pack.buffer))
 				{
-					pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
-
-					if (!m_sock->readSecure(pack.buffer))
-					{
-						callRecvCallback(pack, false);
-						break;
-					}
-				}
-
-				if (!callRecvCallback(pack, true))
-				{
-					{
-						std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
-
-						auto typeIterator = m_recvQueue.find(pack.header.packetType);
-						if (typeIterator == m_recvQueue.end())
-							typeIterator = m_recvQueue.emplace(pack.header.packetType, std::queue<Packet>()).first;
-
-						if (pack.header.flags & FLAG_PH_REMOVE_PREVIOUS)
-						{
-							while (!typeIterator->second.empty())
-								typeIterator->second.pop();
-						}
-						typeIterator->second.push(pack);
-
-						m_recvAvail = true;
-					}
-					m_recvNotify.notify_one();
+					callRecvCallback(pack, false);
+					return;
 				}
 			}
-			if (!m_sock->isConnected())
-				notifyThreads();
+
+			if (!callRecvCallback(pack, true))
+			{
+				{
+					std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
+
+					auto typeIterator = m_recvQueue.find(pack.header.packetType);
+					if (typeIterator == m_recvQueue.end())
+						typeIterator = m_recvQueue.emplace(pack.header.packetType, std::queue<Packet>()).first;
+
+					if (pack.header.flags & FLAG_PH_REMOVE_PREVIOUS)
+					{
+						while (!typeIterator->second.empty())
+							typeIterator->second.pop();
+					}
+					typeIterator->second.push(pack);
+
+					m_recvAvail = true;
+				}
+				m_recvNotify.notify_one();
+
+			}
+
+			pushRecvJob();
 		}
 
-		void PacketQueue::notifyThreads()
+		void PacketQueue::pushRecvJob()
 		{
-			m_sendNotify.notify_one();
-			m_recvNotify.notify_one();
+			m_recvPool.pushJob(std::bind(&PacketQueue::recvFunc, this));
 		}
 
 		void PacketQueue::setCurrentPacketBeingSent(PacketID pID)
 		{
 			{
-				std::unique_lock<std::mutex> lock(m_mtxSendQueue);
+				std::unique_lock<std::mutex> lock(m_mtxPacketIDBeingSent);
 				m_currPacketIDBeingSent = pID;
 			}
-			if (pID == 0)
-				m_sentNotify.notify_one();
-
+			m_sentNotify.notify_all();
 		}
-
-		void PacketQueue::start()
-		{
-			m_stopThreads = false;
-
-			m_sendThread = std::thread(&PacketQueue::sendFunc, this);
-			m_recvThread = std::thread(&PacketQueue::recvFunc, this);
-		}
-
-		void PacketQueue::stop()
-		{
-			m_stopThreads = true;
-
-			m_sendNotify.notify_one();
-			m_recvNotify.notify_one();
-
-			if (m_sendThread.joinable())
-				m_sendThread.join();
-			if (m_recvThread.joinable())
-				m_recvThread.join();
-		}
-
 	} // namespace net
 } // namespace EHSN

@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <future>
+#include "EHSN/ThreadPool.h"
 
 namespace EHSN {
 	namespace crypto {

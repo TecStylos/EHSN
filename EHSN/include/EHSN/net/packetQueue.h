@@ -8,6 +8,7 @@
 
 #include "secSocket.h"
 #include "packetBuffer.h"
+#include "EHSN/ThreadPool.h"
 
 namespace EHSN {
 	namespace net {
@@ -19,7 +20,7 @@ namespace EHSN {
 		enum : PacketFlags
 		{
 			FLAG_PH_NONE = 0b00000000,
-			FLAG_PH_REMOVE_PREVIOUS = 0b00000001,
+			FLAG_PH_REMOVE_PREVIOUS = 0b00000001, // (Packets are only removed on receiver side)
 			FLAG_PH_UNUSED_1 = 0b00000010, // FLAG_PH_SEND_IMMEDIATE
 			FLAG_PH_UNUSED_2 = 0b00000100,
 			FLAG_PH_UNUSED_3 = 0b00001000,
@@ -192,15 +193,12 @@ namespace EHSN {
 			/*
 			* Thread function for sending packets.
 			*/
-			void sendFunc();
+			void sendFunc(Packet packet);
 			/*
 			* Thread function for receiving packets.
 			*/
 			void recvFunc();
-			/*
-			* Notifies all blocking packet queue operations.
-			*/
-			void notifyThreads();
+			void pushRecvJob();
 			/*
 			* Sets the ID of the packet currently being sent.
 			*
@@ -209,37 +207,26 @@ namespace EHSN {
 			* @param pID The ID of the packet currently being sent.
 			*/
 			void setCurrentPacketBeingSent(PacketID pID);
-			/*
-			* Start the send/recv threads
-			*/
-			void start();
-			/*
-			* Stop the send/recv threads
-			*/
-			void stop();
 		private:
-			std::thread m_sendThread;
-			std::thread m_recvThread;
-			bool m_stopThreads = false;
-
-			bool m_sendAvail = false;
 			bool m_recvAvail = false;
-			std::condition_variable m_sendNotify;
 			std::condition_variable m_recvNotify;
+
+			std::mutex m_mtxSent;
 			std::condition_variable m_sentNotify;
 
-			std::mutex m_mtxUnusedBuffers;
-			std::mutex m_mtxSendQueue;
 			std::mutex m_mtxRecvQueue;
-			std::map<PacketHeader, Ref<PacketBuffer>> m_sendQueue;
 			std::map<PacketType, std::queue<Packet>> m_recvQueue;
+
+			ThreadPool m_sendPool;
+			ThreadPool m_recvPool;
 
 			std::mutex m_mtxSentCallbacks;
 			std::mutex m_mtxRecvCallbacks;
 			std::unordered_map<PacketType, CallbackData<PacketSentCallback>> m_sentCallbacks;
 			std::unordered_map<PacketType, CallbackData<PacketRecvCallback>> m_recvCallbacks;
 		private:
-			PacketID m_currPacketIDBeingSent = 0;
+			std::mutex m_mtxPacketIDBeingSent;
+			PacketID m_currPacketIDBeingSent;
 			PacketID m_nextPacketID = 1;
 			bool m_paused = true;
 		private:
