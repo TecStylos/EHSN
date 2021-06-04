@@ -199,13 +199,13 @@ int main(int argc, const char* argv[], const char* env[]) {
 				uint64_t nPackets = 0;
 
 				std::cout << "     Sending packets..." << std::endl;
-				for (int i = 0; i < 100; ++i)
+				for (int i = 0; i < 10; ++i)
 				{
 					auto buffer = std::make_shared<EHSN::net::PacketBuffer>(packetSize);
 					buffer->write(i);
 
 					uint64_t begin = CURR_TIME_MS();
-					queue.wait(1, queue.push(CPT_RAW_DATA, 1, EHSN::net::FLAG_PH_NONE, buffer));
+					queue.wait(queue.push(CPT_RAW_DATA, EHSN::net::FLAG_PH_NONE, buffer));
 					uint64_t end = CURR_TIME_MS();
 
 					timeSum += end - begin;
@@ -254,7 +254,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					auto buffer  = std::make_shared<EHSN::net::PacketBuffer>(sizeof(uint64_t));
 					uint64_t start = CURR_TIME_MS();
 					buffer->write(start);
-					queue.push(EHSN::net::SPT_PING, 1, EHSN::net::FLAG_PH_NONE, buffer);
+					queue.push(EHSN::net::SPT_PING, EHSN::net::FLAG_PH_NONE, buffer);
 
 					std::unique_lock<std::mutex> lock(st.mtx);
 					st.conVar.wait(lock, [&st] { return st.gotPing; });

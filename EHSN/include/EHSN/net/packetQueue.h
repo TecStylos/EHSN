@@ -13,7 +13,6 @@ namespace EHSN {
 	namespace net {
 
 		typedef uint16_t PacketType;
-		typedef uint8_t PriorityLevel;
 		typedef uint8_t PacketFlags;
 		typedef uint32_t PacketID;
 
@@ -33,11 +32,16 @@ namespace EHSN {
 		struct PacketHeader
 		{
 			PacketType packetType = 0;
-			PriorityLevel priorityLevel = -1;
 			PacketFlags flags = FLAG_PH_NONE;
+			uint8_t reserved;
 			PacketID packetID = 0;
 			uint64_t packetSize = 0;
 		};
+
+		constexpr int PacketHeaderSize = sizeof(PacketHeader);
+		#if PacketHeaderSize % 16 != 0
+		#error "sizeof(PacketHeaderSize) must be a multiple of 16!"
+		#endif
 
 		bool operator<(const PacketHeader& left, const PacketHeader& right);
 
@@ -116,16 +120,13 @@ namespace EHSN {
 			*
 			* The supplied packet buffer should not be used after calling this function.
 			* For speed improvements you should acquire the buffer with calling acquireBuffer.
-			* Avoid a priority level of 0. It is used for system messages.
-			* Lower priority levels mean higher priority.
 			*
 			* @param packetType Type of the packet to be sent.
-			* @param priorityLevel Priority level. May be a value between 1 and 255.
 			* @param flags Flags determining how to handle this and other packets.
 			* @param buffer Packet buffer holding the data to be sent.
 			* @returns The packed ID identifying the pushed packet.
 			*/
-			PacketID push(PacketType packetType, PriorityLevel priorityLevel, PacketFlags flags, Ref<PacketBuffer> buffer);
+			PacketID push(PacketType packetType, PacketFlags flags, Ref<PacketBuffer> buffer);
 			PacketID push(PacketHeader& header, Ref<PacketBuffer> buffer);
 			/*
 			* Pull a packet from the read-queue.
@@ -148,10 +149,9 @@ namespace EHSN {
 			/*
 			* Wait until a specific packet has been sent.
 			*
-			* @param priorityLevel The priority level of the packet when it was pushed.
 			* @param packetID The ID of the packet returned by a call to push.
 			*/
-			void wait(PriorityLevel priorityLevel, PacketID packetID);
+			void wait(PacketID packetID);
 			/*
 			* Clear all incoming/outgoing packets.
 			*/

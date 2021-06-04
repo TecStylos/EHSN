@@ -5,12 +5,7 @@ namespace EHSN {
 
 		bool operator<(const PacketHeader& left, const PacketHeader& right)
 		{
-			if (left.priorityLevel == right.priorityLevel)
-			{
-				return left.packetID < right.packetID;
-			}
-
-			return left.priorityLevel < right.priorityLevel;
+			return left.packetID < right.packetID;
 		}
 
 		PacketQueue::PacketQueue(Ref<SecSocket> sock)
@@ -45,11 +40,10 @@ namespace EHSN {
 			stop();
 		}
 
-		PacketID PacketQueue::push(PacketType packetType, PriorityLevel priorityLevel, PacketFlags flags, Ref<PacketBuffer> buffer)
+		PacketID PacketQueue::push(PacketType packetType, PacketFlags flags, Ref<PacketBuffer> buffer)
 		{
 			PacketHeader header;
 			header.packetType = packetType;
-			header.priorityLevel = priorityLevel;
 			header.flags = flags;
 
 			return push(header, buffer);
@@ -102,10 +96,9 @@ namespace EHSN {
 			return typeIterator->second.size();
 		}
 
-		void PacketQueue::wait(PriorityLevel priorityLevel, PacketID packetID)
+		void PacketQueue::wait(PacketID packetID)
 		{
 			PacketHeader ph;
-			ph.priorityLevel = priorityLevel;
 			ph.packetID = packetID;
 
 			std::unique_lock<std::mutex> lock(m_mtxSendQueue);
