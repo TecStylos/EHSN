@@ -45,7 +45,7 @@ namespace EHSN {
 			stop();
 		}
 
-		PacketID PacketQueue::push(PacketType packetType, PriorityLevel priorityLevel, PacketFlags flags, PacketBuffer buffer)
+		PacketID PacketQueue::push(PacketType packetType, PriorityLevel priorityLevel, PacketFlags flags, Ref<PacketBuffer> buffer)
 		{
 			PacketHeader header;
 			header.packetType = packetType;
@@ -55,10 +55,10 @@ namespace EHSN {
 			return push(header, buffer);
 		}
 
-		PacketID PacketQueue::push(PacketHeader& header, PacketBuffer buffer)
+		PacketID PacketQueue::push(PacketHeader& header, Ref<PacketBuffer> buffer)
 		{
 			header.packetID = m_nextPacketID++;
-			header.packetSize = buffer.size();
+			header.packetSize = buffer->size();
 			{
 				std::unique_lock<std::mutex> lock(m_mtxSendQueue);
 				m_sendQueue.emplace(header, buffer); // TODO: Check if remove_previous flag is set
@@ -90,8 +90,6 @@ namespace EHSN {
 				}
 			}
 
-			pack.buffer.setReturnToQueue(true);
-
 			return pack;
 		}
 
@@ -112,45 +110,6 @@ namespace EHSN {
 
 			std::unique_lock<std::mutex> lock(m_mtxSendQueue);
 			m_sentNotify.wait(lock, [this, &ph] { return (m_sendQueue.find(ph) == m_sendQueue.end()) && (ph.packetID != m_currPacketIDBeingSent); });
-		}
-
-		PacketBuffer PacketQueue::acquireBuffer(uint64_t minSize)
-		{
-			PacketBuffer buffer;
-			{
-				std::unique_lock<std::mutex> lock(m_mtxUnusedBuffers);
-				auto iterator = m_unusedBuffers.lower_bound(minSize);
-
-				if (iterator == m_unusedBuffers.end())
-				{
-					if (m_unusedBuffers.empty())
-						return PacketBuffer(minSize, this);
-					--iterator;
-				}
-
-				buffer = iterator->second.front();
-				iterator->second.pop();
-				if (iterator->second.empty())
-					m_unusedBuffers.erase(iterator);
-			}
-
-			buffer.resize(minSize);
-
-			buffer.setReturnToQueue(true);
-
-			return buffer;
-		}
-
-		void PacketQueue::releaseBuffer(PacketBuffer buffer)
-		{
-			buffer.setReturnToQueue(false);
-
-			std::unique_lock<std::mutex> lock(m_mtxUnusedBuffers);
-
-			auto iterator = m_unusedBuffers.find(buffer.reserved());
-			if (iterator == m_unusedBuffers.end())
-				iterator = m_unusedBuffers.emplace(buffer.reserved(), std::queue<PacketBuffer>()).first;
-			iterator->second.push(buffer);
 		}
 
 		void PacketQueue::clear()
@@ -278,7 +237,7 @@ namespace EHSN {
 
 				if (pack.header.packetSize > 0)
 				{
-					pack.buffer = acquireBuffer(pack.header.packetSize);
+					pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
 
 					if (!m_sock->readSecure(pack.buffer))
 					{

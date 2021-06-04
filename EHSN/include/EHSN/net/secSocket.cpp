@@ -51,9 +51,9 @@ namespace EHSN {
 			return !!m_aesKey;
 		}
 
-		uint64_t SecSocket::readSecure(PacketBuffer buffer)
+		uint64_t SecSocket::readSecure(Ref<PacketBuffer> buffer)
 		{
-			return readSecure(buffer.data(), buffer.size());
+			return readSecure(buffer->data(), buffer->size());
 		}
 
 		uint64_t SecSocket::readSecure(void* buffer, uint64_t nBytes)
@@ -83,9 +83,9 @@ namespace EHSN {
 			return nRead;
 		}
 
-		uint64_t SecSocket::writeSecure(PacketBuffer buffer)
+		uint64_t SecSocket::writeSecure(Ref<PacketBuffer> buffer)
 		{
-			return writeSecure(buffer.data(), buffer.size());
+			return writeSecure(buffer->data(), buffer->size());
 		}
 
 		uint64_t SecSocket::writeSecure(void* buffer, uint64_t nBytes)

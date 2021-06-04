@@ -20,12 +20,8 @@ namespace EHSN {
 			* @param size Size of the new buffer being allocated.
 			*/
 			PacketBuffer(uint64_t size);
-			PacketBuffer(uint64_t size, PacketQueue* pQueue);
 		public:
 			PacketBuffer(const PacketBuffer& other);
-			PacketBuffer(PacketBuffer&& other) noexcept;
-			PacketBuffer& operator=(const PacketBuffer& other);
-			PacketBuffer& operator=(PacketBuffer&& other) noexcept;
 		public:
 			~PacketBuffer();
 		public:
@@ -92,20 +88,7 @@ namespace EHSN {
 			* @param newSize New size of the buffer.
 			*/
 			void resize(uint64_t newSize);
-		public:
-			/*
-			* Set whether the buffer should be returned to the queue when the last reference gets destroyed.
-			*
-			* @param returnTuQueue Set to true if the buffer should be returned to the queue when the last reference gets destroyed. Otherwise false.
-			*/
-			void setReturnToQueue(bool returnToQueue);
 		private:
-			/*
-			* Delete the current buffer.
-			*
-			* If no buffer is allocated nothing happens.
-			*/
-			void deleteBuffer();
 			/*
 			* Delete the old buffer and creates a new one.
 			*
@@ -115,23 +98,15 @@ namespace EHSN {
 			*/
 			void createBuffer(uint64_t size);
 			/*
-			* Remove the reference to the underlying buffer and delete it if necessary.
+			* Delete the current buffer.
+			*
+			* If no buffer is allocated nothing happens.
 			*/
-			void removeReference();
-		public:
-			operator bool() const;
+			void deleteBuffer();
 		private:
-			struct BufferInfo
-			{
-				void* buffer = nullptr;
-				uint64_t size = 0;
-				uint64_t nReserved = 0;
-
-				PacketQueue* pQueue = nullptr;
-				bool returnToQueue = false;
-
-				uint64_t refCount = 0;
-			} *m_pBufferInfo;
+			uint8_t* m_buffer = nullptr;
+			uint64_t m_size = 0;
+			uint64_t m_nReserved = 0;
 		};
 
 		template<typename T>

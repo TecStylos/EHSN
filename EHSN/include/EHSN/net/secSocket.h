@@ -77,7 +77,7 @@ namespace EHSN {
 			* @param buffer The buffer to write the decrypted data to.
 			* @returns Number of bytes read from the socket.
 			*/
-			uint64_t readSecure(PacketBuffer buffer);
+			uint64_t readSecure(Ref<PacketBuffer> buffer);
 			/*
 			* Read encrypted data from the socket and decrypt it.
 			*
@@ -95,7 +95,7 @@ namespace EHSN {
 			* @param buffer The buffer to read the data from.
 			* @returns Number of bytes written to the socket.
 			*/
-			uint64_t writeSecure(PacketBuffer buffer);
+			uint64_t writeSecure(Ref<PacketBuffer> buffer);
 			/*
 			* Encrypt data in-place and write it to the socket.
 			*

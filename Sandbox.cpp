@@ -100,6 +100,8 @@ int main(int argc, const char* argv[], const char* env[]) {
 		}
 	}
 
+	bool noDelay = true;
+
 	if (runServer)
 	{
 		std::cout << "Creating secAcceptor..." << std::endl;
@@ -107,18 +109,15 @@ int main(int argc, const char* argv[], const char* env[]) {
 		while (true)
 		{
 			std::cout << "Waiting for connection..." << std::endl;
-			acceptor.newSession(true);
+			acceptor.newSession(noDelay);
 			std::cout << "  New connection accepted!" << std::endl;
 		}
 	}
 
-	auto sock = std::make_shared<EHSN::net::SecSocket>(EHSN::crypto::defaultRDG, std::thread::hardware_concurrency() / 2);
-
 	std::string host = "tecstylos.ddns.net";
 	std::string port = "10000";
-	bool noDelay = true;
 
-	EHSN::net::PacketQueue queue(sock);
+	EHSN::net::PacketQueue queue(std::make_shared<EHSN::net::SecSocket>(EHSN::crypto::defaultRDG, std::thread::hardware_concurrency() / 2));
 
 	while (true)
 	{
@@ -202,8 +201,8 @@ int main(int argc, const char* argv[], const char* env[]) {
 				std::cout << "     Sending packets..." << std::endl;
 				for (int i = 0; i < 100; ++i)
 				{
-					auto buffer = queue.acquireBuffer(packetSize);
-					buffer.write(i);
+					auto buffer = std::make_shared<EHSN::net::PacketBuffer>(packetSize);
+					buffer->write(i);
 
 					uint64_t begin = CURR_TIME_MS();
 					queue.wait(1, queue.push(CPT_RAW_DATA, 1, EHSN::net::FLAG_PH_NONE, buffer));
@@ -239,7 +238,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					{
 						auto& st = *(LambdaStruct*)pParam;
 						uint64_t end = CURR_TIME_MS();
-						st.pingQueue.push(end - *(uint64_t*)pack.buffer.data());
+						st.pingQueue.push(end - *(uint64_t*)pack.buffer->data());
 
 						{
 							std::unique_lock<std::mutex> lock(st.mtx);
@@ -252,9 +251,9 @@ int main(int argc, const char* argv[], const char* env[]) {
 
 				for (int i = 0; i < 10; ++i)
 				{
-					auto buffer = queue.acquireBuffer(sizeof(uint64_t));
+					auto buffer  = std::make_shared<EHSN::net::PacketBuffer>(sizeof(uint64_t));
 					uint64_t start = CURR_TIME_MS();
-					buffer.write(start);
+					buffer->write(start);
 					queue.push(EHSN::net::SPT_PING, 1, EHSN::net::FLAG_PH_NONE, buffer);
 
 					std::unique_lock<std::mutex> lock(st.mtx);
@@ -283,13 +282,13 @@ int main(int argc, const char* argv[], const char* env[]) {
 		}
 		else if (*it == "metrics")
 		{
-			auto& metrics = sock->getDataMetrics();
+			auto& metrics = queue.getSock()->getDataMetrics();
 			std::cout << "   Read:    " << metrics.nRead() << " bytes" << std::endl;
 			std::cout << "   Written: " << metrics.nWritten() << " bytes" << std::endl;
 		}
 		else if (*it == "resetMetrics")
 		{
-			sock->resetDataMetrics();
+			queue.getSock()->resetDataMetrics();
 			std::cout << "  Metrics reset." << std::endl;
 		}
 		else if (*it == "exit")

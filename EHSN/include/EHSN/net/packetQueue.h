@@ -44,7 +44,7 @@ namespace EHSN {
 		struct Packet
 		{
 			PacketHeader header;
-			PacketBuffer buffer;
+			Ref<PacketBuffer> buffer;
 		};
 
 		enum STANDARD_PACKET_TYPES : PacketType
@@ -125,8 +125,8 @@ namespace EHSN {
 			* @param buffer Packet buffer holding the data to be sent.
 			* @returns The packed ID identifying the pushed packet.
 			*/
-			PacketID push(PacketType packetType, PriorityLevel priorityLevel, PacketFlags flags, PacketBuffer buffer);
-			PacketID push(PacketHeader& header, PacketBuffer buffer);
+			PacketID push(PacketType packetType, PriorityLevel priorityLevel, PacketFlags flags, Ref<PacketBuffer> buffer);
+			PacketID push(PacketHeader& header, Ref<PacketBuffer> buffer);
 			/*
 			* Pull a packet from the read-queue.
 			*
@@ -152,24 +152,6 @@ namespace EHSN {
 			* @param packetID The ID of the packet returned by a call to push.
 			*/
 			void wait(PriorityLevel priorityLevel, PacketID packetID);
-			/*
-			* Acquire a packet buffer with a size of minSize or more.
-			*
-			* If a buffer with minSize bytes or more is available, it will be returned.
-			* Otherwise a new buffer will be created.
-			*
-			* @param minSize Minimum size of the buffer to be returned.
-			* @returns Packet buffer with minSize bytes or more.
-			*/
-			PacketBuffer acquireBuffer(uint64_t minSize);
-			/*
-			* Release a buffer to the packet queue.
-			*
-			* The released buffer should not be used after calling this function.
-			*
-			* @param buffer Buffer to be released.
-			*/
-			void releaseBuffer(PacketBuffer buffer);
 			/*
 			* Clear all incoming/outgoing packets.
 			*/
@@ -249,8 +231,7 @@ namespace EHSN {
 			std::mutex m_mtxUnusedBuffers;
 			std::mutex m_mtxSendQueue;
 			std::mutex m_mtxRecvQueue;
-			std::map<uint64_t, std::queue<PacketBuffer>> m_unusedBuffers;
-			std::map<PacketHeader, PacketBuffer> m_sendQueue;
+			std::map<PacketHeader, Ref<PacketBuffer>> m_sendQueue;
 			std::map<PacketType, std::queue<Packet>> m_recvQueue;
 
 			std::mutex m_mtxSentCallbacks;

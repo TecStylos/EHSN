@@ -36,7 +36,7 @@ namespace EHSN {
 			* Immediately starts the new session in a separate thread after a client connects.
 			* This function is blocking.
 			*
-			* @param noDelay If set to true latency may be improved, but bandwidth shortened.
+			* @param noDelay If set to true latency may be improved, but bandwidth usage increased.
 			*/
 			void newSession(bool noDelay = false);
 		private:

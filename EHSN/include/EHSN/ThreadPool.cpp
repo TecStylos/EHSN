@@ -39,7 +39,7 @@ namespace EHSN {
 
 	uint32_t ThreadPool::size() const
 	{
-		return m_threads.size();
+		return (uint32_t)m_threads.size();
 	}
 
 	void ThreadPool::threadFunc()
