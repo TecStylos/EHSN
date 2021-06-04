@@ -255,6 +255,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					uint64_t start = CURR_TIME_MS();
 					buffer->write(start);
 					queue.push(EHSN::net::SPT_PING, EHSN::net::FLAG_PH_NONE, buffer);
+					EHSN::net::PacketHeader header;
 
 					std::unique_lock<std::mutex> lock(st.mtx);
 					st.conVar.wait(lock, [&st] { return st.gotPing; });

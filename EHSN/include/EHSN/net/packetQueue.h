@@ -1,5 +1,4 @@
-#ifndef PACKETQUEUE_H
-#define PACKETQUEUE_H
+#pragma once
 
 #include <map>
 #include <unordered_map>
@@ -32,8 +31,8 @@ namespace EHSN {
 
 		struct PacketHeader
 		{
-			PacketType packetType = 0;
-			PacketFlags flags = FLAG_PH_NONE;
+			PacketType packetType = 0; /* Must be set prior to push. */
+			PacketFlags flags = FLAG_PH_NONE; /* Must be set prior to push. */
 			uint8_t reserved;
 			PacketID packetID = 0;
 			uint64_t packetSize = 0;
@@ -90,11 +89,14 @@ namespace EHSN {
 			/*
 			* Constructor of PacketQueue.
 			*
-			* The supplied socket should only be used when the packet queue is paused.
-			*
 			* @param sock Socket used for read/write operations.
 			*/
 			PacketQueue(Ref<SecSocket> sock);
+			/*
+			* Destructor of PacketQueue.
+			* 
+			* Closes the underlying socket if open.
+			*/
 			~PacketQueue();
 		public:
 			/*
@@ -120,7 +122,6 @@ namespace EHSN {
 			* Push a packet onto the write-queue.
 			*
 			* The supplied packet buffer should not be used after calling this function.
-			* For speed improvements you should acquire the buffer with calling acquireBuffer.
 			*
 			* @param packetType Type of the packet to be sent.
 			* @param flags Flags determining how to handle this and other packets.
@@ -128,6 +129,14 @@ namespace EHSN {
 			* @returns The packed ID identifying the pushed packet.
 			*/
 			PacketID push(PacketType packetType, PacketFlags flags, Ref<PacketBuffer> buffer);
+			/*
+			* Push a packet onto the write-queue.
+			* 
+			* The supplied packet buffer should not be used after calling this function.
+			* 
+			* @param header Header of the packet. See PacketHeader for details. (Especially which members must be initialized by the callee)
+			* @param buffer Packet buffer holding the data to be sent.
+			*/
 			PacketID push(PacketHeader& header, Ref<PacketBuffer> buffer);
 			/*
 			* Pull a packet from the read-queue.
@@ -198,6 +207,9 @@ namespace EHSN {
 			* Thread function for receiving packets.
 			*/
 			void recvFunc();
+			/*
+			* Push a job onto m_recvPool to keep it alive.
+			*/
 			void pushRecvJob();
 			/*
 			* Sets the ID of the packet currently being sent.
@@ -235,5 +247,3 @@ namespace EHSN {
 
 	} // namespace net
 } // namespace EHSN
-
-#endif // PACKETQUEUE_H

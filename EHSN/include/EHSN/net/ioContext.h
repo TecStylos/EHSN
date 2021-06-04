@@ -1,5 +1,4 @@
-#ifndef IOCONTEXT_H
-#define IOCONTEXT_H
+#pragma once
 
 #include <asio.hpp>
 
@@ -29,5 +28,3 @@ namespace EHSN {
 
 	} // namespace net
 } // namespace EHSN
-
-#endif // IOCONTEXT_H

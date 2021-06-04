@@ -16,14 +16,38 @@ namespace EHSN {
 		typedef std::function<void(void)> Job;
 	public:
 		ThreadPool() = delete;
+		/*
+		* Constructor of ThreadPool.
+		* 
+		* @param nThreads Number of threads to be created.
+		*/
 		ThreadPool(uint32_t nThreads);
+		/*
+		* Destructor of ThreadPool.
+		* 
+		* Waits for all threads to finish their jobs.
+		*/
 		~ThreadPool();
 	public:
 		void pushJob(Job job);
+		/*
+		* Wait until the job queue is empty and all threads are idle.
+		*/
 		void wait();
+		/*
+		* Get number of threads in the pool.
+		* 
+		* @returns Number of threads in the pool.
+		*/
 		uint32_t size() const;
+		/*
+		* Clears the job queue.
+		*/
 		void clear();
 	private:
+		/*
+		* Main function for the threads.
+		*/
 		void threadFunc();
 	private:
 		std::mutex m_mtxWait;

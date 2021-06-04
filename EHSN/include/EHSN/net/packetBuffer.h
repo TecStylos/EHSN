@@ -1,5 +1,4 @@
-#ifndef PACKETBUFFER_H
-#define PACKETBUFFER_H
+#pragma once
 
 #include <cstdint>
 
@@ -124,4 +123,4 @@ namespace EHSN {
 	} // namespace net
 } // namespace EHSN
 
-#endif // PACKETBUFFER_H
+#pragma once

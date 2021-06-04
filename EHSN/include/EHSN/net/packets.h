@@ -1,5 +1,4 @@
-#ifndef PACKETS_H
-#define PACKETS_H
+#pragma once
 
 #include <cstdint>
 
@@ -33,5 +32,3 @@ namespace EHSN {
 		} // namespace packets
 	} // namespace net
 } // namespace EHSN
-
-#endif // PACKETS_H

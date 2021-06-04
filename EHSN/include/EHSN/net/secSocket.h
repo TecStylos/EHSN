@@ -1,5 +1,4 @@
-#ifndef SECSOCKET_H
-#define SECSOCKET_H
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -248,5 +247,3 @@ namespace EHSN {
 
 	} // namespace net
 } // namespace EHSN
-
-#endif // SECSOCKET_H
