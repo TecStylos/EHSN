@@ -57,7 +57,7 @@ namespace EHSN {
 			SPT_PING,
 			SPT_PING_REPLY,
 			SPT_CHANGE_AES_KEY,
-			SPT_FIRST_FREE_PACKET_TYPE // Can be used to determine the associated value of the first user-defined packet type.
+			SPT_FIRST_FREE_PACKET_TYPE // Can be used to determine the associated value of the first user-defined packet type. All previous/smaller values are reserved.
 		};
 
 		class PacketQueue

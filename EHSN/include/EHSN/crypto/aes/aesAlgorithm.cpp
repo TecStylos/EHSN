@@ -35,9 +35,10 @@ namespace EHSN {
 				if (nBlocksPerJob == 0)
 					return crypt(cipherData, nBytes, clearData, key, false, func);
 
+				uint64_t lastJobNum = 0;
 				for (uint64_t i = 0; i < nJobs; ++i)
 				{
-					threadPool->pushJob(
+					lastJobNum = threadPool->pushJob(
 						[func, cipherData, i, nJobs, nBytesLastJob, nBytesPerJob, clearData, key]()
 						{
 							bool isLastJob = (i == nJobs - 1);
@@ -55,7 +56,7 @@ namespace EHSN {
 					clearData = (char*)clearData + nBytesPerJob;
 				}
 
-				threadPool->wait();
+				threadPool->wait(lastJobNum);
 
 				return nBytes;
 			}

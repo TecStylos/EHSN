@@ -29,11 +29,23 @@ namespace EHSN {
 		*/
 		~ThreadPool();
 	public:
-		void pushJob(Job job);
+		/*
+		* Push a new job onto the queue.
+		* 
+		* @param job The job to push onto the queue.
+		* @returns Unique job number. Can be used to wait until the passed job executed.
+		*/
+		uint64_t pushJob(Job job);
 		/*
 		* Wait until the job queue is empty and all threads are idle.
 		*/
 		void wait();
+		/*
+		* Wait until a specific job is completed.
+		* 
+		* @param jobNum The number of a job returned by pushJob.
+		*/
+		void wait(uint64_t jobNum);
 		/*
 		* Get number of threads in the pool.
 		* 
@@ -58,5 +70,7 @@ namespace EHSN {
 		std::queue<Job> m_jobs;
 		std::atomic_uint32_t m_runningJobs;
 		std::vector<Ref<std::thread>> m_threads;
+		std::atomic_uint64_t m_nJobsDone;
+		std::atomic_uint64_t m_nextJobNum;
 	};
 }

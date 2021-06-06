@@ -205,8 +205,11 @@ namespace EHSN {
 		private:
 			tcp::socket m_sock;
 			bool m_isConnected = false;
-			Ref<crypto::aes::Key> m_aesKey;
-			Ref<ThreadPool> m_threadPool;
+			struct CryptData
+			{
+				Ref<crypto::aes::Key> aesKey;
+				Ref<ThreadPool> threadPool;
+			} m_cryptData;
 		private:
 			DataMetrics m_dataMetrics;
 		private:

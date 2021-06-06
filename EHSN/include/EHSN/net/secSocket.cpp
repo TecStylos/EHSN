@@ -5,10 +5,11 @@
 namespace EHSN {
 	namespace net {
 
-		SecSocket::SecSocket(crypto::RandomDataGenerator rdg, uint32_t nThreads)
+		SecSocket::SecSocket(crypto::RandomDataGenerator rdg, uint32_t nCryptThreads)
 			: m_sock(IOContext::get()), m_rdg(rdg)
 		{
-			m_threadPool = std::make_shared<ThreadPool>(nThreads);
+			if (nCryptThreads > 0)
+				m_cryptData.threadPool = std::make_shared<ThreadPool>(nCryptThreads);
 		}
 
 		bool SecSocket::connect(const std::string& host, const std::string& port, bool noDelay)
@@ -48,7 +49,7 @@ namespace EHSN {
 
 		bool SecSocket::isSecure() const
 		{
-			return !!m_aesKey;
+			return !!m_cryptData.aesKey;
 		}
 
 		uint64_t SecSocket::readSecure(Ref<PacketBuffer> buffer)
@@ -59,7 +60,7 @@ namespace EHSN {
 		uint64_t SecSocket::readSecure(void* buffer, uint64_t nBytes)
 		{
 			uint64_t nRead = readRaw(buffer, crypto::aes::paddedSize(nBytes));
-			uint64_t nDecrypted = autoDecrypt(buffer, nRead, buffer, m_aesKey, true);
+			uint64_t nDecrypted = autoDecrypt(buffer, nRead, buffer, m_cryptData.aesKey, true);
 
 			return (nRead >= nBytes) ? nBytes : nRead;
 		}
@@ -71,7 +72,7 @@ namespace EHSN {
 
 		uint64_t SecSocket::writeSecure(void* buffer, uint64_t nBytes)
 		{
-			uint64_t nEncrypted = autoEncrypt(buffer, nBytes, buffer, m_aesKey, true);
+			uint64_t nEncrypted = autoEncrypt(buffer, nBytes, buffer, m_cryptData.aesKey, true);
 			uint64_t nWritten = writeRaw(buffer, nEncrypted);
 
 			return nWritten;
@@ -130,12 +131,16 @@ namespace EHSN {
 
 		uint64_t SecSocket::autoEncrypt(const void* clearData, uint64_t nBytes, void* cipherData, Ref<crypto::aes::Key> key, bool pad)
 		{
-			return crypto::aes::encryptThreaded(clearData, nBytes, cipherData, key, pad, m_threadPool->size(), m_threadPool);
+			if (m_cryptData.threadPool)
+				return crypto::aes::encryptThreaded(clearData, nBytes, cipherData, key, pad, m_cryptData.threadPool->size(), m_cryptData.threadPool);
+			return crypto::aes::encrypt(clearData, nBytes, cipherData, key, pad);
 		}
 
 		uint64_t SecSocket::autoDecrypt(const void* cipherData, uint64_t nBytes, void* clearData, Ref<crypto::aes::Key> key, bool pad)
 		{
-			return crypto::aes::decryptThreaded(cipherData, nBytes, clearData, key, pad, m_threadPool->size(), m_threadPool);
+			if (m_cryptData.threadPool)
+				return crypto::aes::decryptThreaded(cipherData, nBytes, clearData, key, pad, m_cryptData.threadPool->size(), m_cryptData.threadPool);
+			return crypto::aes::decrypt(cipherData, nBytes, clearData, key, pad);
 		}
 
 		void SecSocket::setConnected(bool state)
@@ -145,7 +150,7 @@ namespace EHSN {
 
 		void SecSocket::setAES(const char* keyRaw, uint64_t keySize)
 		{
-			m_aesKey = std::make_shared<crypto::aes::Key>(keyRaw, keySize);
+			m_cryptData.aesKey = std::make_shared<crypto::aes::Key>(keyRaw, keySize);
 		}
 
 		bool SecSocket::establishSecureConnection()
@@ -215,7 +220,7 @@ namespace EHSN {
 				// Generate a random echo msg
 				m_rdg(&buffDec[aesKeySize], aesKeyEchoSize);
 
-				m_aesKey = std::make_shared<crypto::aes::Key>(buffDec, aesKeySize);
+				m_cryptData.aesKey = std::make_shared<crypto::aes::Key>(buffDec, aesKeySize);
 
 				// Encrypt AES-Key and echo msg
 				char* buffEnc = new char[rsaKey->getMaxCipherBuffSize()];

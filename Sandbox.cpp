@@ -199,6 +199,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 				uint64_t nPackets = 0;
 
 				std::cout << "     Sending packets..." << std::endl;
+
 				for (int i = 0; i < 10; ++i)
 				{
 					auto buffer = std::make_shared<EHSN::net::PacketBuffer>(packetSize);
@@ -231,6 +232,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					std::mutex mtx;
 					std::condition_variable conVar;
 				} st;
+
 				queue.setRecvCallback
 				(
 					EHSN::net::SPT_PING_REPLY,
@@ -247,7 +249,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 						st.conVar.notify_one();
 					},
 					&st
-						);
+				);
 
 				for (int i = 0; i < 10; ++i)
 				{

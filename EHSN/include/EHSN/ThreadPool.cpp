@@ -17,13 +17,14 @@ namespace EHSN {
 			t->join();
 	}
 
-	void ThreadPool::pushJob(Job job)
+	uint64_t ThreadPool::pushJob(Job job)
 	{
 		{
 			std::unique_lock<std::mutex> lock(m_mtxJob);
 			m_jobs.push(job);
 		}
 		m_condJob.notify_one();
+		return ++m_nextJobNum;
 	}
 
 	void ThreadPool::wait()
@@ -33,6 +34,17 @@ namespace EHSN {
 			[this]()
 			{
 				return m_jobs.empty() && (m_runningJobs == 0);
+			}
+		);
+	}
+
+	void ThreadPool::wait(uint64_t jobNum)
+	{
+		std::unique_lock<std::mutex> lock(m_mtxWait);
+		m_condWait.wait(lock,
+			[this, jobNum]()
+			{
+				return m_nJobsDone >= jobNum;
 			}
 		);
 	}
@@ -87,6 +99,7 @@ namespace EHSN {
 				}
 
 				--m_runningJobs;
+				++m_nJobsDone;
 
 				m_condWait.notify_one();
 			}

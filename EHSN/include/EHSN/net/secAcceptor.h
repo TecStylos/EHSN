@@ -22,7 +22,7 @@ namespace EHSN {
 			*
 			* @param port Port to bind the acceptor to.
 			* @param sFunc User defined function that gets called after a secure connection was established.
-			* @param pParam User defined data that can be used by sFunc and ecb. May be NULL.
+			* @param pParam User defined data passed to sFunc and ecb calls. May be NULL.
 			* @param ecb User defined exception callback for non-handled std::exception's in sFunc. May be NULL.
 			* @param rdg Random data generator used for generating the keys. (Currently unused)
 			*/
