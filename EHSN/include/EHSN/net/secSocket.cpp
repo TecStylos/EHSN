@@ -60,7 +60,7 @@ namespace EHSN {
 		uint64_t SecSocket::readSecure(void* buffer, uint64_t nBytes)
 		{
 			uint64_t nRead = readRaw(buffer, crypto::aes::paddedSize(nBytes));
-			uint64_t nDecrypted = autoDecrypt(buffer, nRead, buffer, m_cryptData.aesKey, true);
+			if (nRead) autoDecrypt(buffer, nRead, buffer, m_cryptData.aesKey, true);
 
 			return (nRead >= nBytes) ? nBytes : nRead;
 		}

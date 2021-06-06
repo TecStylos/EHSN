@@ -238,7 +238,7 @@ namespace EHSN {
 			std::unordered_map<PacketType, CallbackData<PacketRecvCallback>> m_recvCallbacks;
 		private:
 			std::mutex m_mtxPacketIDBeingSent;
-			PacketID m_currPacketIDBeingSent;
+			PacketID m_currPacketIDBeingSent = 0;
 			PacketID m_nextPacketID = 1;
 			bool m_paused = true;
 		private:

@@ -197,10 +197,10 @@ namespace EHSN {
 			Packet pack;
 
 			if (!m_sock->isConnected())
-				return;
+				goto NextIteration;
 
 			if (!m_sock->readSecure(&pack.header, sizeof(pack.header)))
-				return;
+				goto NextIteration;
 
 			if (pack.header.packetSize > 0)
 			{
@@ -209,7 +209,7 @@ namespace EHSN {
 				if (!m_sock->readSecure(pack.buffer))
 				{
 					callRecvCallback(pack, false);
-					return;
+					goto NextIteration;
 				}
 			}
 
@@ -231,12 +231,12 @@ namespace EHSN {
 
 					m_recvAvail = true;
 				}
-				m_recvNotify.notify_one();
-
 			}
 
+		NextIteration:
 			if (m_sock->isConnected())
 				pushRecvJob();
+			m_recvNotify.notify_all();
 		}
 
 		void PacketQueue::pushRecvJob()

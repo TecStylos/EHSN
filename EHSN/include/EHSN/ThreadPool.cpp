@@ -2,7 +2,7 @@
 
 namespace EHSN {
 	ThreadPool::ThreadPool(uint32_t nThreads)
-		: m_threads(nThreads), m_terminateThreads(false), m_runningJobs(0)
+		: m_threads(nThreads), m_terminateThreads(false), m_runningJobs(0), m_nJobsDone(0), m_nextJobNum(1)
 	{
 		for (auto& t : m_threads)
 			t = std::make_shared<std::thread>(&ThreadPool::threadFunc, this);
@@ -24,7 +24,7 @@ namespace EHSN {
 			m_jobs.push(job);
 		}
 		m_condJob.notify_one();
-		return ++m_nextJobNum;
+		return m_nextJobNum++;
 	}
 
 	void ThreadPool::wait()
