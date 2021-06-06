@@ -10,7 +10,9 @@ namespace EHSN {
 		namespace aes {
 
 			typedef void (*CryptBlockFunc)(const void*, void*, Ref<Key>);
-			typedef void (*CryptFunc)(const void*, int, void*, Ref<Key>);
+			typedef void (*CryptFunc)(const void*, int, void*, Ref<Key>, bool);
+
+			inline uint64_t paddedSize(uint64_t nBytes) { return ((nBytes + AES_BLOCK_SIZE - 1) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE; }
 
 			/*
 			* Encrypt a data block.
@@ -37,65 +39,82 @@ namespace EHSN {
 			* from and to may point to the same buffer.
 			*
 			* @param from Pointer to the source data.
-			* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
+			* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE if padded is set to false!
 			* @param to Pointer to the destination.
 			* @param key Key to encrypt the data with.
+			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
+			* @param func The function to use (en-/decryption).
+			* @returns Number of en-/decrypted bytes in to buffer.
 			*/
-			void crypt(const void* from, int nBytes, void* to, Ref<Key> key, CryptBlockFunc func);
+			uint64_t crypt(const void* from, uint64_t nBytes, void* to, Ref<Key> key, bool pad, CryptBlockFunc func);
 			/*
 			* Encrypt nBytes of data.
 			* clearData and cipherData may point to the same buffer.
 			*
 			* @param clearData Pointer to the data to encrypt.
-			* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
+			* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE if padded is set to false!
 			* @param cipherData Address where the encrypted data gets stored.
 			* @param key Key to encrypt the data with.
+			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
+			* @returns Number of encrypted bytes in cipherData buffer.
 			*/
-			inline void encrypt(const void* clearData, int nBytes, void* cipherData, Ref<Key> key) { crypt(clearData, nBytes, cipherData, key, &encryptBlock); }
+			inline uint64_t encrypt(const void* clearData, uint64_t nBytes, void* cipherData, Ref<Key> key, bool pad) { return crypt(clearData, nBytes, cipherData, key, pad, &encryptBlock); }
 			/*
 			* Decrypt nBytes of data.
 			* cipherData and clearData may point to the same buffer.
 			*
 			* @param cipherData Pointer to the data to decrypt.
-			* @param nBytes Number of bytes to decrypt. Must be a multiple of AES_BLOCK_SIZE!
+			* @param nBytes Number of bytes to decrypt. Must be a multiple of AES_BLOCK_SIZE if padded is set to false!
 			* @param clearData Address where the decrypted data gets stored.
 			* @param key Key to decrypt the data with.
+			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
+			* @returns Number of decrypted bytes in clearData buffer.
 			*/
-			inline void decrypt(const void* cipherData, int nBytes, void* clearData, Ref<Key> key) { crypt(cipherData, nBytes, clearData, key, &decryptBlock); }
+			inline uint64_t decrypt(const void* cipherData, uint64_t nBytes, void* clearData, Ref<Key> key, bool pad) { return crypt(cipherData, nBytes, clearData, key, pad, &decryptBlock); }
 
 			/*
 			* En-/Decrypt nBytes of data.
 			* from and to may point to the same buffer.
 			*
 			* @param from Pointer to the source data.
-			* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
+			* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE if pad is set to false!
 			* @param to Pointer to the destination.
 			* @param key Key to encrypt the data with.
-			* @param nThreads Number of threads to use.
+			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
+			* @param nJobs Number of jobs to use.
+			* @param threadPool Thread pool to push the jobs onto.
+			* @param func The function to use (en-/decryption).
+			* @returns Number of en-/decrypted bytes in to buffer.
 			*/
-			void cryptThreaded(const void* from, int nBytes, void* to, Ref<Key> key, int nJobs, Ref<ThreadPool> threadPool, CryptFunc func);
+			uint64_t cryptThreaded(const void* from, uint64_t nBytes, void* to, Ref<Key> key, bool pad, uint64_t nJobs, Ref<ThreadPool> threadPool, CryptBlockFunc func);
 			/*
 			* Encrypt nBytes of data.
 			* clearData and cipherData may point to the same buffer.
 			*
 			* @param clearData Pointer to the data to encrypt.
-			* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
+			* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE if padded is set to false!
 			* @param cipherData Address where the encrypted data gets stored.
 			* @param key Key to encrypt the data with.
-			* @param nThreads Number of threads to use.
+			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
+			* @param nJobs Number of jobs to use.
+			* @param threadPool Thread pool to push the jobs onto.
+			* @returns Number of encrypted bytes in cipherData buffer.
 			*/
-			inline void encryptThreaded(const void* clearData, int nBytes, void* cipherData, Ref<Key> key, int nJobs, Ref<ThreadPool> threadPool) { cryptThreaded(clearData, nBytes, cipherData, key, nJobs, threadPool, &encrypt); }
+			inline uint64_t encryptThreaded(const void* clearData, uint64_t nBytes, void* cipherData, Ref<Key> key, bool pad, int nJobs, Ref<ThreadPool> threadPool) { return cryptThreaded(clearData, nBytes, cipherData, key, pad, nJobs, threadPool, &encryptBlock); }
 			/*
 			* Decrypt nBytes of data.
 			* cipherData and clearData may point to the same buffer.
 			*
 			* @param cipherData Pointer to the data to decrypt.
-			* @param nBytes Number of bytes to decrypt. Must be a multiple of AES_BLOCK_SIZE!
+			* @param nBytes Number of bytes to decrypt. Must be a multiple of AES_BLOCK_SIZE if padded is set to false!
 			* @param clearData Address where the decrypted data gets stored.
 			* @param key Key to decrypt the data with.
+			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
 			* @param nJobs Number of jobs to use.
+			* @param threadPool Thread pool to push the jobs onto.
+			* @returns Number of decrypted bytes in clearData buffer.
 			*/
-			inline void decryptThreaded(const void* cipherData, int nBytes, void* clearData, Ref<Key> key, int nJobs, Ref<ThreadPool> threadPool) { cryptThreaded(cipherData, nBytes, clearData, key, nJobs, threadPool, &decrypt); }
+			inline uint64_t decryptThreaded(const void* cipherData, uint64_t nBytes, void* clearData, Ref<Key> key, bool pad, int nJobs, Ref<ThreadPool> threadPool) { return cryptThreaded(cipherData, nBytes, clearData, key, pad, nJobs, threadPool, &decryptBlock); }
 		} // namespace aes
 
 	} // namespace crypto

@@ -58,29 +58,10 @@ namespace EHSN {
 
 		uint64_t SecSocket::readSecure(void* buffer, uint64_t nBytes)
 		{
-			uint64_t completeChunks = nBytes / AES_BLOCK_SIZE;
-			uint64_t nBytesFullChunks = completeChunks * AES_BLOCK_SIZE;
+			uint64_t nRead = readRaw(buffer, crypto::aes::paddedSize(nBytes));
+			uint64_t nDecrypted = autoDecrypt(buffer, nRead, buffer, m_aesKey, true);
 
-			uint64_t nRead = 0;
-			if (nBytesFullChunks != 0)
-			{
-				nRead += readRaw(buffer, nBytesFullChunks);
-				autoDecrypt(buffer, (int)nBytesFullChunks, buffer, m_aesKey);
-			}
-
-			uint64_t nRemaining = nBytes % AES_BLOCK_SIZE;
-			if (nRemaining != 0)
-			{
-				char temp[AES_BLOCK_SIZE];
-				uint64_t nReadEnc = readRaw(temp, AES_BLOCK_SIZE);
-				crypto::aes::decryptBlock(temp, temp, m_aesKey);
-				memcpy((char*)buffer + nBytesFullChunks, temp, nRemaining);
-
-				if (nReadEnc != 0)
-					nRead += nRemaining;
-			}
-
-			return nRead;
+			return (nRead >= nBytes) ? nBytes : nRead;
 		}
 
 		uint64_t SecSocket::writeSecure(Ref<PacketBuffer> buffer)
@@ -90,28 +71,8 @@ namespace EHSN {
 
 		uint64_t SecSocket::writeSecure(void* buffer, uint64_t nBytes)
 		{
-			uint64_t nWritten = 0;
-
-			uint64_t completeBlocks = nBytes / AES_BLOCK_SIZE;
-			uint64_t nBytesFullBlocks = completeBlocks * AES_BLOCK_SIZE;
-
-			if (nBytesFullBlocks != 0)
-			{
-				autoEncrypt(buffer, (int)nBytesFullBlocks, buffer, m_aesKey);
-				nWritten += writeRaw(buffer, nBytesFullBlocks);
-			}
-
-			uint64_t nRemaining = nBytes % AES_BLOCK_SIZE;
-			if (nRemaining != 0)
-			{
-				char temp[AES_BLOCK_SIZE];
-				memcpy(temp, (char*)buffer + nBytesFullBlocks, nRemaining);
-				crypto::aes::encryptBlock(temp, temp, m_aesKey);
-				uint64_t nWrittenEnc = writeRaw(temp, AES_BLOCK_SIZE);
-
-				if (nWrittenEnc != 0)
-					nWritten += nRemaining;
-			}
+			uint64_t nEncrypted = autoEncrypt(buffer, nBytes, buffer, m_aesKey, true);
+			uint64_t nWritten = writeRaw(buffer, nEncrypted);
 
 			return nWritten;
 		}
@@ -167,14 +128,14 @@ namespace EHSN {
 			return nWritten;
 		}
 
-		void SecSocket::autoEncrypt(const void* clearData, int nBytes, void* cipherData, Ref<crypto::aes::Key> key)
+		uint64_t SecSocket::autoEncrypt(const void* clearData, uint64_t nBytes, void* cipherData, Ref<crypto::aes::Key> key, bool pad)
 		{
-			crypto::aes::encryptThreaded(clearData, nBytes, cipherData, key, m_threadPool->size(), m_threadPool);
+			return crypto::aes::encryptThreaded(clearData, nBytes, cipherData, key, pad, m_threadPool->size(), m_threadPool);
 		}
 
-		void SecSocket::autoDecrypt(const void* cipherData, int nBytes, void* clearData, Ref<crypto::aes::Key> key)
+		uint64_t SecSocket::autoDecrypt(const void* cipherData, uint64_t nBytes, void* clearData, Ref<crypto::aes::Key> key, bool pad)
 		{
-			crypto::aes::decryptThreaded(cipherData, nBytes, clearData, key, m_threadPool->size(), m_threadPool);
+			return crypto::aes::decryptThreaded(cipherData, nBytes, clearData, key, pad, m_threadPool->size(), m_threadPool);
 		}
 
 		void SecSocket::setConnected(bool state)

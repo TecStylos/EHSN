@@ -11,6 +11,8 @@ namespace EHSN {
 		PacketQueue::PacketQueue(Ref<SecSocket> sock)
 			: m_sock(sock), m_sendPool(1), m_recvPool(1)
 		{
+			if (m_sock->isConnected())
+				pushRecvJob();
 		}
 
 		PacketQueue::~PacketQueue()
@@ -28,7 +30,8 @@ namespace EHSN {
 			disconnect();
 
 			bool ret = m_sock->connect(host, port, noDelay);
-			pushRecvJob();
+			if (m_sock->isConnected())
+				pushRecvJob();
 
 			return ret;
 		}

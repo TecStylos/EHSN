@@ -7,37 +7,48 @@
 namespace EHSN {
 	namespace crypto {
 		namespace aes {
-			void crypt(const void* from, int nBytes, void* to, Ref<Key> key, CryptBlockFunc func)
+			uint64_t crypt(const void* from, uint64_t nBytes, void* to, Ref<Key> key, bool pad, CryptBlockFunc func)
 			{
-				assert(nBytes % AES_BLOCK_SIZE == 0);
+				assert(pad || nBytes % AES_BLOCK_SIZE == 0);
+				if (pad)
+					nBytes = paddedSize(nBytes);
 
 				for (int i = 0; i < nBytes; i += AES_BLOCK_SIZE)
 				{
 					func((const char*)from + i, (char*)to + i, key);
 				}
+
+				return nBytes;
 			}
 
-			void cryptThreaded(const void* cipherData, int nBytes, void* clearData, Ref<Key> key, int nJobs, Ref<ThreadPool> threadPool, CryptFunc func)
+			uint64_t cryptThreaded(const void* cipherData, uint64_t nBytes, void* clearData, Ref<Key> key, bool pad, uint64_t nJobs, Ref<ThreadPool> threadPool, CryptBlockFunc func)
 			{
-				assert(nBytes % AES_BLOCK_SIZE == 0);
+				assert(pad || nBytes % AES_BLOCK_SIZE == 0);
+				if (pad)
+					nBytes = paddedSize(nBytes);
 
-				int nBlocks = nBytes / AES_BLOCK_SIZE;
-				int nBlocksPerJob = nBlocks / nJobs;
-				int nBytesPerJob = nBlocksPerJob * AES_BLOCK_SIZE;
-				int nBytesLastJob = nBytes - nBytesPerJob * (nJobs - 1);
+				uint64_t nBlocks = nBytes / AES_BLOCK_SIZE;
+				uint64_t nBlocksPerJob = nBlocks / nJobs;
+				uint64_t nBytesPerJob = nBlocksPerJob * AES_BLOCK_SIZE;
+				uint64_t nBytesLastJob = nBytes - nBytesPerJob * (nJobs - 1);
 
 				if (nBlocksPerJob == 0)
-				{
-					func(cipherData, nBytes, clearData, key);
-					return;
-				}
+					return crypt(cipherData, nBytes, clearData, key, false, func);
 
-				for (int i = 0; i < nJobs; ++i)
+				for (uint64_t i = 0; i < nJobs; ++i)
 				{
 					threadPool->pushJob(
 						[func, cipherData, i, nJobs, nBytesLastJob, nBytesPerJob, clearData, key]()
 						{
-							func(cipherData, (i == nJobs - 1) ? nBytesLastJob : nBytesPerJob, clearData, key);
+							bool isLastJob = (i == nJobs - 1);
+							crypt(
+								cipherData,
+								isLastJob ? nBytesLastJob : nBytesPerJob,
+								clearData,
+								key,
+								false,
+								func
+							);
 						}
 					);
 					cipherData = (char*)cipherData + nBytesPerJob;
@@ -45,6 +56,8 @@ namespace EHSN {
 				}
 
 				threadPool->wait();
+
+				return nBytes;
 			}
 
 		} // namespace aes

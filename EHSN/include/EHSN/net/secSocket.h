@@ -80,7 +80,7 @@ namespace EHSN {
 			/*
 			* Read encrypted data from the socket and decrypt it.
 			*
-			* @param buffer The buffer to write the decrypted data to.
+			* @param buffer The buffer to write the decrypted data to. Size must be a multiple of AES_BLOCK_SIZE!
 			* @param nBytes Number of bytes to read from the socket. Must be equal to nBytes of the writeSecure function call on the remote endpoint.
 			* @returns Number of bytes read from the socket.
 			*/
@@ -100,7 +100,7 @@ namespace EHSN {
 			*
 			* The data in buffer may be partially or fully changed.
 			*
-			* @param buffer The buffer to encrypt and write to the socket.
+			* @param buffer The buffer to encrypt and write to the socket Size must be a multiple of AES_BLOCK_SIZE!.
 			* @param nBytes Number of bytes to write to the socket.
 			* @returns Number of bytes written to the socket.
 			*/
@@ -149,9 +149,9 @@ namespace EHSN {
 			* @param nBytes Number of bytes to encrypt. Must be a multiple of AES_BLOCK_SIZE!
 			* @param cipherData Address where the encrypted data gets stored.
 			* @param key Key to encrypt the data with.
-			* @param nThreads Number of threads to use. Must be smaller or equal to CRYPTO_MAX_THREADS
+			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
 			*/
-			void autoEncrypt(const void* clearData, int nBytes, void* cipherData, Ref<crypto::aes::Key> key);
+			uint64_t autoEncrypt(const void* clearData, uint64_t nBytes, void* cipherData, Ref<crypto::aes::Key> key, bool pad);
 			/*
 			* Decrypt nBytes of data.
 			* Automatically chooses the threaded/non-threaded version.
@@ -161,9 +161,9 @@ namespace EHSN {
 			* @param nBytes Number of bytes to decrypt. Must be a multiple of AES_BLOCK_SIZE!
 			* @param clearData Address where the decrypted data gets stored.
 			* @param key Key to decrypt the data with.
-			* @param nThreads Number of threads to use. Must be smaller or equal to CRYPTO_MAX_THREADS
+			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
 			*/
-			void autoDecrypt(const void* cipherData, int nBytes, void* clearData, Ref<crypto::aes::Key> key);
+			uint64_t autoDecrypt(const void* cipherData, uint64_t nBytes, void* clearData, Ref<crypto::aes::Key> key, bool pad);
 		private:
 			/*
 			* Set the internal connected state.
