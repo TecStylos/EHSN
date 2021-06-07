@@ -84,7 +84,7 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 
 int main(int argc, const char* argv[], const char* env[]) {
 
-	bool runServer = true;
+	bool runServer = false;
 	for (int i = 0; i < argc; ++i)
 	{
 		std::string arg = argv[i];

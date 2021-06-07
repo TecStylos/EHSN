@@ -56,7 +56,7 @@ namespace EHSN {
 			SPT_UNDEFINED = 0,
 			SPT_PING,
 			SPT_PING_REPLY,
-			SPT_CHANGE_AES_KEY,
+			SPT_CHANGE_AES_KEY, // Currently unused
 			SPT_FIRST_FREE_PACKET_TYPE // Can be used to determine the associated value of the first user-defined packet type. All previous/smaller values are reserved.
 		};
 
@@ -151,11 +151,18 @@ namespace EHSN {
 			Packet pull(PacketType packType);
 			/*
 			* Get the number of available packets matching the packet type.
+			* If packType == SPT_UNDEFINED, the sum of all available packets gets returned.
 			*
 			* @param packType The packet type to check for.
 			* @returns The number of available packets matching the packet type.
 			*/
 			uint64_t nAvailable(PacketType packType);
+			/*
+			* Get the packet types for which are one or more packets in the receive queue.
+			* 
+			* @returns Vector containing every packet type for which one or more packets are in the receive queue.
+			*/
+			std::vector<PacketType> typesAvailable();
 			/*
 			* Wait until a specific packet has been sent.
 			*

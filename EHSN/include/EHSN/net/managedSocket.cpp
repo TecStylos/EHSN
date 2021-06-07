@@ -90,10 +90,33 @@ namespace EHSN {
 		uint64_t ManagedSocket::nAvailable(PacketType packType)
 		{
 			std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
+			
+			if (packType == SPT_UNDEFINED)
+			{
+				uint64_t nAvail = 0;
+				for (auto& it : m_recvQueue)
+					nAvail += it.second.size();
+				return nAvail;
+			}
+			
 			auto typeIterator = m_recvQueue.find(packType);
 			if (typeIterator == m_recvQueue.end())
 				return 0;
 			return typeIterator->second.size();
+		}
+
+		std::vector<PacketType> ManagedSocket::typesAvailable()
+		{
+			std::vector<PacketType> pTypes;
+			std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
+			
+			for (auto& it : m_recvQueue)
+			{
+				if (it.second.size() > 0)
+					pTypes.push_back(it.first);
+			}
+
+			return pTypes;
 		}
 
 		void ManagedSocket::wait(PacketID packetID)
