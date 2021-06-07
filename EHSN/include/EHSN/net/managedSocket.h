@@ -60,7 +60,7 @@ namespace EHSN {
 			SPT_FIRST_FREE_PACKET_TYPE // Can be used to determine the associated value of the first user-defined packet type. All previous/smaller values are reserved.
 		};
 
-		class PacketQueue
+		class ManagedSocket
 		{
 		public:
 			/*
@@ -87,17 +87,17 @@ namespace EHSN {
 				void* pParam;
 			};
 			/*
-			* Constructor of PacketQueue.
+			* Constructor of ManagedSocket.
 			*
 			* @param sock Socket used for read/write operations.
 			*/
-			PacketQueue(Ref<SecSocket> sock);
+			ManagedSocket(Ref<SecSocket> sock);
 			/*
 			* Destructor of PacketQueue.
 			* 
 			* Closes the underlying socket if open.
 			*/
-			~PacketQueue();
+			~ManagedSocket();
 		public:
 			/*
 			* Get the underlying socket.

@@ -12,10 +12,11 @@ add_library (
 	"include/EHSN/crypto/rsa/rsaKey.cpp"
 	"include/EHSN/net/ioContext.cpp"
 	"include/EHSN/net/packetBuffer.cpp"
-	"include/EHSN/net/packetQueue.cpp"
+	"include/EHSN/net/managedSocket.cpp"
 	"include/EHSN/net/secAcceptor.cpp"
 	"include/EHSN/net/secSocket.cpp"
- "include/EHSN/ThreadPool.h" "include/EHSN/ThreadPool.cpp")
+	"include/EHSN/ThreadPool.cpp"
+)
 
 # Cross-Platform Include Directories
 target_include_directories (

@@ -1,4 +1,4 @@
-#include "packetQueue.h"
+#include "managedSocket.h"
 
 namespace EHSN {
 	namespace net {
@@ -8,24 +8,24 @@ namespace EHSN {
 			return left.packetID < right.packetID;
 		}
 
-		PacketQueue::PacketQueue(Ref<SecSocket> sock)
+		ManagedSocket::ManagedSocket(Ref<SecSocket> sock)
 			: m_sock(sock), m_sendPool(1), m_recvPool(1)
 		{
 			if (m_sock->isConnected())
 				pushRecvJob();
 		}
 
-		PacketQueue::~PacketQueue()
+		ManagedSocket::~ManagedSocket()
 		{
 			disconnect();
 		}
 
-		Ref<SecSocket> PacketQueue::getSock()
+		Ref<SecSocket> ManagedSocket::getSock()
 		{
 			return m_sock;
 		}
 
-		bool PacketQueue::connect(const std::string& host, const std::string& port, bool noDelay)
+		bool ManagedSocket::connect(const std::string& host, const std::string& port, bool noDelay)
 		{
 			disconnect();
 
@@ -36,13 +36,13 @@ namespace EHSN {
 			return ret;
 		}
 
-		void PacketQueue::disconnect()
+		void ManagedSocket::disconnect()
 		{
 			m_sock->disconnect();
 			m_recvPool.clear();
 		}
 
-		PacketID PacketQueue::push(PacketType packetType, PacketFlags flags, Ref<PacketBuffer> buffer)
+		PacketID ManagedSocket::push(PacketType packetType, PacketFlags flags, Ref<PacketBuffer> buffer)
 		{
 			PacketHeader header;
 			header.packetType = packetType;
@@ -51,7 +51,7 @@ namespace EHSN {
 			return push(header, buffer);
 		}
 
-		PacketID PacketQueue::push(PacketHeader& header, Ref<PacketBuffer> buffer)
+		PacketID ManagedSocket::push(PacketHeader& header, Ref<PacketBuffer> buffer)
 		{
 			Packet pack;
 			pack.header = header;
@@ -59,12 +59,12 @@ namespace EHSN {
 			pack.header.packetSize = buffer->size();
 			pack.buffer = buffer;
 
-			m_sendPool.pushJob(std::bind(&PacketQueue::sendFunc, this, pack));
+			m_sendPool.pushJob(std::bind(&ManagedSocket::sendFunc, this, pack));
 
 			return pack.header.packetID;
 		}
 
-		Packet PacketQueue::pull(PacketType packType)
+		Packet ManagedSocket::pull(PacketType packType)
 		{
 			Packet pack;
 			while (!pack.buffer && m_sock->isConnected())
@@ -87,7 +87,7 @@ namespace EHSN {
 			return pack;
 		}
 
-		uint64_t PacketQueue::nAvailable(PacketType packType)
+		uint64_t ManagedSocket::nAvailable(PacketType packType)
 		{
 			std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
 			auto typeIterator = m_recvQueue.find(packType);
@@ -96,14 +96,14 @@ namespace EHSN {
 			return typeIterator->second.size();
 		}
 
-		void PacketQueue::wait(PacketID packetID)
+		void ManagedSocket::wait(PacketID packetID)
 		{
 			std::unique_lock<std::mutex> lock(m_mtxPacketIDBeingSent);
 
 			m_sentNotify.wait(lock, [this, packetID](){ return packetID < m_currPacketIDBeingSent; });
 		}
 
-		void PacketQueue::clear()
+		void ManagedSocket::clear()
 		{
 			m_sendPool.clear();
 
@@ -119,7 +119,7 @@ namespace EHSN {
 			}
 		}
 
-		void PacketQueue::setSentCallback(PacketType pType, PacketSentCallback cb, void* pParam)
+		void ManagedSocket::setSentCallback(PacketType pType, PacketSentCallback cb, void* pParam)
 		{
 			std::unique_lock<std::mutex> lock(m_mtxSentCallbacks);
 
@@ -133,7 +133,7 @@ namespace EHSN {
 				m_sentCallbacks.erase(pType);
 		}
 
-		void PacketQueue::setRecvCallback(PacketType pType, PacketRecvCallback cb, void* pParam)
+		void ManagedSocket::setRecvCallback(PacketType pType, PacketRecvCallback cb, void* pParam)
 		{
 			std::unique_lock<std::mutex> lock(m_mtxSentCallbacks);
 
@@ -147,7 +147,7 @@ namespace EHSN {
 				m_recvCallbacks.erase(pType);
 		}
 
-		bool PacketQueue::callSentCallback(const Packet& pack, bool success)
+		bool ManagedSocket::callSentCallback(const Packet& pack, bool success)
 		{
 			setCurrentPacketBeingSent(m_currPacketIDBeingSent + 1);
 
@@ -161,7 +161,7 @@ namespace EHSN {
 			return true;
 		}
 
-		bool PacketQueue::callRecvCallback(Packet& pack, bool success)
+		bool ManagedSocket::callRecvCallback(Packet& pack, bool success)
 		{
 			std::unique_lock<std::mutex> lock(m_mtxRecvCallbacks);
 
@@ -172,7 +172,7 @@ namespace EHSN {
 			return true;
 		}
 
-		void PacketQueue::sendFunc(Packet packet)
+		void ManagedSocket::sendFunc(Packet packet)
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
@@ -192,7 +192,7 @@ namespace EHSN {
 			}
 		}
 
-		void PacketQueue::recvFunc()
+		void ManagedSocket::recvFunc()
 		{
 			Packet pack;
 
@@ -239,12 +239,12 @@ namespace EHSN {
 			m_recvNotify.notify_all();
 		}
 
-		void PacketQueue::pushRecvJob()
+		void ManagedSocket::pushRecvJob()
 		{
-			m_recvPool.pushJob(std::bind(&PacketQueue::recvFunc, this));
+			m_recvPool.pushJob(std::bind(&ManagedSocket::recvFunc, this));
 		}
 
-		void PacketQueue::setCurrentPacketBeingSent(PacketID pID)
+		void ManagedSocket::setCurrentPacketBeingSent(PacketID pID)
 		{
 			{
 				std::unique_lock<std::mutex> lock(m_mtxPacketIDBeingSent);

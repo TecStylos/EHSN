@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include "packetQueue.h"
-
 namespace EHSN {
 	namespace net {
 

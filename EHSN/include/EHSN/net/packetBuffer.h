@@ -7,8 +7,6 @@ namespace EHSN {
 
 		constexpr uint64_t CHUNK_SIZE = 2048;
 
-		class PacketQueue;
-
 		class PacketBuffer
 		{
 		public:

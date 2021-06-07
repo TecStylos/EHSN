@@ -60,13 +60,13 @@ enum CUSTOM_PACKET_TYPES : EHSN::net::PacketType {
 };
 
 void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
-	EHSN::net::PacketQueue queue(sock);
+	EHSN::net::ManagedSocket queue(sock);
 
 	queue.setRecvCallback(
 		EHSN::net::SPT_PING,
 		[](EHSN::net::Packet pack, bool success, void* pParam)
 		{
-			auto& queue = *(EHSN::net::PacketQueue*)pParam;
+			auto& queue = *(EHSN::net::ManagedSocket*)pParam;
 			pack.header.packetType = EHSN::net::SPT_PING_REPLY;
 			queue.push(pack.header, pack.buffer);
 		},
@@ -117,7 +117,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 	std::string host = "tecstylos.ddns.net";
 	std::string port = "10000";
 
-	EHSN::net::PacketQueue queue(std::make_shared<EHSN::net::SecSocket>(EHSN::crypto::defaultRDG, std::thread::hardware_concurrency() / 2));
+	EHSN::net::ManagedSocket queue(std::make_shared<EHSN::net::SecSocket>(EHSN::crypto::defaultRDG, std::thread::hardware_concurrency() / 2));
 
 	while (true)
 	{
