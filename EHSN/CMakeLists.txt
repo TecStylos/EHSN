@@ -37,6 +37,8 @@ if (UNIX) # Unix specific
 	find_package (Threads REQUIRED)
 	target_link_libraries(EHSN PRIVATE Threads::Threads)
 
+	target_link_libraries(EHSN PRIVATE atomic)
+
 	# Include directories
 	target_include_directories (
 		EHSN PUBLIC

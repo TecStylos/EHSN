@@ -2,6 +2,9 @@
 
 #include <iostream>
 
+#define CLIENT_THREADS_PER_SOCKET 8
+#define SERVER_THREADS_PER_SOCKET 4
+
 std::vector<std::string> splitCommand(const std::string& command) {
 	std::vector<std::string> commandParts;
 
@@ -60,12 +63,13 @@ enum CUSTOM_PACKET_TYPES : EHSN::net::PacketType {
 };
 
 void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
-	EHSN::net::ManagedSocket queue(sock);
+	EHSN::net::ManagedSocket queue(sock, SERVER_THREADS_PER_SOCKET);
 
 	queue.setRecvCallback(
 		EHSN::net::SPT_PING,
 		[](EHSN::net::Packet pack, bool success, void* pParam)
 		{
+			std::cout << "    Got ping request!" << std::endl;
 			auto& queue = *(EHSN::net::ManagedSocket*)pParam;
 			pack.header.packetType = EHSN::net::SPT_PING_REPLY;
 			queue.push(pack);
@@ -105,19 +109,21 @@ int main(int argc, const char* argv[], const char* env[]) {
 	if (runServer)
 	{
 		std::cout << "Creating secAcceptor..." << std::endl;
-		EHSN::net::SecAcceptor acceptor("10000", sessionFunc, nullptr, nullptr);
+		EHSN::net::SecAcceptor acceptor("10000", sessionFunc, nullptr, nullptr, 0);
 		while (true)
 		{
 			std::cout << "Waiting for connection..." << std::endl;
 			acceptor.newSession(noDelay);
 			std::cout << "  New connection accepted!" << std::endl;
 		}
+
+		return 0;
 	}
 
 	std::string host = "tecstylos.ddns.net";
 	std::string port = "10000";
 
-	EHSN::net::ManagedSocket queue(std::make_shared<EHSN::net::SecSocket>(EHSN::crypto::defaultRDG, std::thread::hardware_concurrency() / 2));
+	EHSN::net::ManagedSocket queue(std::make_shared<EHSN::net::SecSocket>(EHSN::crypto::defaultRDG, 0), CLIENT_THREADS_PER_SOCKET);
 
 	while (true)
 	{
@@ -195,23 +201,34 @@ int main(int argc, const char* argv[], const char* env[]) {
 				std::cout << "    Running data test..." << std::endl;
 
 				constexpr uint64_t packetSize = 100 * 1000 * 1000;
-				uint64_t timeSum = 0;
-				uint64_t nPackets = 0;
+				uint64_t nPackets = 10;
 
 				std::cout << "     Sending packets..." << std::endl;
 
-				for (int i = 0; i < 10; ++i)
+				std::vector<EHSN::Ref<EHSN::net::PacketBuffer>> buffers;
+				buffers.resize(nPackets);
+				for (uint64_t i = 0; i < nPackets; ++i)
 				{
-					auto buffer = std::make_shared<EHSN::net::PacketBuffer>(packetSize);
-					buffer->write(i);
-
-					uint64_t begin = CURR_TIME_MS();
-					queue.wait(queue.push(CPT_RAW_DATA, EHSN::net::FLAG_PH_NONE, buffer));
-					uint64_t end = CURR_TIME_MS();
-
-					timeSum += end - begin;
-					++nPackets;
+					buffers[i] = std::make_shared<EHSN::net::PacketBuffer>(packetSize);
+					buffers[i]->write(i);
 				}
+
+				uint64_t begin = CURR_TIME_MS();
+
+				EHSN::net::PacketID lastPacketID;
+				for (uint64_t i = 0; i < nPackets; ++i)
+					queue.push(CPT_RAW_DATA, EHSN::net::FLAG_PH_NONE, buffers[i]);
+				{
+					auto pingBuffer = std::make_shared<EHSN::net::PacketBuffer>(sizeof(uint64_t));
+					uint64_t start = CURR_TIME_MS();
+					pingBuffer->write(start);
+					queue.push(EHSN::net::SPT_PING, EHSN::net::FLAG_PH_NONE, pingBuffer);
+					queue.pull(EHSN::net::SPT_PING_REPLY);
+				}
+
+				uint64_t end = CURR_TIME_MS();
+
+				uint64_t timeSum = end - begin;
 
 				float sentData = (float)(nPackets * packetSize) / 1000.0f / 1000.0f;
 				float timePerPacket = (float)timeSum / (float)nPackets;

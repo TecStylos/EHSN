@@ -1,6 +1,6 @@
 #include "packetBuffer.h"
 
-#include <memory>
+#include <cstring>
 
 namespace EHSN {
 	namespace net {

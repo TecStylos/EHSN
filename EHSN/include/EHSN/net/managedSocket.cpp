@@ -8,9 +8,15 @@ namespace EHSN {
 			return left.packetID < right.packetID;
 		}
 
-		ManagedSocket::ManagedSocket(Ref<SecSocket> sock)
-			: m_sock(sock), m_sendPool(1), m_recvPool(1), m_cryptPool(1)
+		ManagedSocket::ManagedSocket(Ref<SecSocket> sock, uint32_t nThreads)
+			: m_sock(sock), m_sendPool(1), m_recvPool(1)
 		{
+			if (nThreads > 0)
+			{
+				m_pCryptPool = std::make_shared<ThreadPool>(1);
+				m_pCryptThreadPool = std::make_shared<ThreadPool>(nThreads);
+			}
+
 			if (m_sock->isConnected())
 				pushRecvJob();
 		}
@@ -47,6 +53,7 @@ namespace EHSN {
 			Packet pack;
 			pack.header.packetType = packetType;
 			pack.header.flags = flags;
+			pack.buffer = buffer;
 
 			return push(pack);
 		}
@@ -56,7 +63,10 @@ namespace EHSN {
 			pack.header.packetID = m_nextPacketID++;
 			pack.header.packetSize = pack.buffer->size();
 
-			m_sendPool.pushJob(std::bind(&ManagedSocket::sendFunc, this, pack));
+			if (m_pCryptThreadPool)
+				m_pCryptPool->pushJob(std::bind(&ManagedSocket::makeSendableJob, this, pack));
+			else
+				m_sendPool.pushJob(std::bind(&ManagedSocket::sendJobEncrypt, this, pack));
 
 			return pack.header.packetID;
 		}
@@ -192,7 +202,7 @@ namespace EHSN {
 			return true;
 		}
 
-		void ManagedSocket::sendFunc(Packet packet)
+		void ManagedSocket::sendJobEncrypt(Packet packet)
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
@@ -212,7 +222,43 @@ namespace EHSN {
 			}
 		}
 
-		void ManagedSocket::recvFunc()
+		void ManagedSocket::sendJobNoEncrypt(Packet packet)
+		{
+			m_currPacketIDBeingSent = packet.header.packetID;
+
+			if (packet.buffer)
+			{
+				if (!m_sock->writeSecure(&packet.header, sizeof(PacketHeader)))
+				{
+					callSentCallback(packet, false);
+					return;
+				}
+				if (!m_sock->writeRaw(packet.buffer->data(), packet.buffer->size()))
+				{
+					callSentCallback(packet, false);
+					return;
+				}
+				callSentCallback(packet, true);
+			}
+		}
+
+		void ManagedSocket::makeSendableJob(Packet packet)
+		{
+			uint64_t newSize = crypto::aes::encryptThreaded(
+				packet.buffer->data(),
+				packet.buffer->size(),
+				packet.buffer->data(),
+				m_sock->getAESKey(),
+				true,
+				m_pCryptThreadPool->size(),
+				m_pCryptThreadPool
+			);
+			packet.buffer->resize(newSize);
+
+			m_sendPool.pushJob(std::bind(&ManagedSocket::sendJobNoEncrypt, this, packet));
+		}
+
+		void ManagedSocket::recvJobDecrypt()
 		{
 			Packet pack;
 
@@ -259,9 +305,76 @@ namespace EHSN {
 			m_recvNotify.notify_all();
 		}
 
+		void ManagedSocket::recvJobNoDecrypt()
+		{
+			Packet pack;
+
+			if (!m_sock->isConnected())
+				goto NextIteration;
+
+			if (!m_sock->readSecure(&pack.header, sizeof(pack.header)))
+				goto NextIteration;
+
+			if (pack.header.packetSize > 0)
+			{
+				pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
+
+				if (!m_sock->readRaw(pack.buffer->data(), crypto::aes::paddedSize(pack.buffer->size())))
+				{
+					callRecvCallback(pack, false);
+					goto NextIteration;
+				}
+			}
+
+			m_pCryptPool->pushJob(std::bind(&ManagedSocket::makePullableJob, this, pack));
+
+		NextIteration:
+			if (m_sock->isConnected())
+				pushRecvJob();
+			m_recvNotify.notify_all();
+		}
+
+		void ManagedSocket::makePullableJob(Packet packet)
+		{
+			crypto::aes::decryptThreaded(
+				packet.buffer->data(),
+				packet.buffer->size(),
+				packet.buffer->data(),
+				m_sock->getAESKey(),
+				true,
+				m_pCryptThreadPool->size(),
+				m_pCryptThreadPool
+			);
+
+			if (!callRecvCallback(packet, true))
+			{
+				{
+					std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
+
+					auto typeIterator = m_recvQueue.find(packet.header.packetType);
+					if (typeIterator == m_recvQueue.end())
+						typeIterator = m_recvQueue.emplace(packet.header.packetType, std::queue<Packet>()).first;
+
+					if (packet.header.flags & FLAG_PH_REMOVE_PREVIOUS)
+					{
+						while (!typeIterator->second.empty())
+							typeIterator->second.pop();
+					}
+					typeIterator->second.push(packet);
+
+					m_recvAvail = true;
+				}
+			}
+
+			m_recvNotify.notify_all();
+		}
+
 		void ManagedSocket::pushRecvJob()
 		{
-			m_recvPool.pushJob(std::bind(&ManagedSocket::recvFunc, this));
+			if (m_pCryptThreadPool)
+				m_recvPool.pushJob(std::bind(&ManagedSocket::recvJobNoDecrypt, this));
+			else
+				m_recvPool.pushJob(std::bind(&ManagedSocket::recvJobDecrypt, this));
 		}
 
 		void ManagedSocket::setCurrentPacketBeingSent(PacketID pID)

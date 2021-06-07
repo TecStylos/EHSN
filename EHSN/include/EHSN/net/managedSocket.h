@@ -33,7 +33,7 @@ namespace EHSN {
 		{
 			PacketType packetType = 0; /* Must be set prior to push. */
 			PacketFlags flags = FLAG_PH_NONE; /* Must be set prior to push. */
-			uint8_t reserved;
+			uint8_t reserved = 0;
 			PacketID packetID = 0;
 			uint64_t packetSize = 0;
 		};
@@ -90,8 +90,9 @@ namespace EHSN {
 			* Constructor of ManagedSocket.
 			*
 			* @param sock Socket used for read/write operations.
+			* @param nThreads If set to true, packets will be en-/decrypted in a separate thread. For values greater than 0 the passed socket should be created with 0 threads.
 			*/
-			ManagedSocket(Ref<SecSocket> sock);
+			ManagedSocket(Ref<SecSocket> sock, uint32_t nThreads = 0);
 			/*
 			* Destructor of PacketQueue.
 			* 
@@ -205,13 +206,29 @@ namespace EHSN {
 			*/
 			bool callRecvCallback(Packet& pack, bool success);
 			/*
-			* Thread function for sending packets.
+			* Thread function for sending packets whose buffer is not encrypted.
 			*/
-			void sendFunc(Packet packet);
+			void sendJobEncrypt(Packet packet);
 			/*
-			* Thread function for receiving packets.
+			* Thread function for sending packets whose buffer is already encrypted.
 			*/
-			void recvFunc();
+			void sendJobNoEncrypt(Packet packet);
+			/*
+			* Thread function for encrypting packet buffers and creating the corresponding sendJob.
+			*/
+			void makeSendableJob(Packet packet);
+			/*
+			* Thread function for receiving packets and decrypting them.
+			*/
+			void recvJobDecrypt();
+			/*
+			* Thread function for receiving packets and creating a makePullableJob.
+			*/
+			void recvJobNoDecrypt();
+			/*
+			* Thread function for decrypting packet buffers and pushing them onto the recvQueue.
+			*/
+			void makePullableJob(Packet packet);
 			/*
 			* Push a job onto m_recvPool to keep it alive.
 			*/
@@ -236,8 +253,8 @@ namespace EHSN {
 
 			ThreadPool m_sendPool;
 			ThreadPool m_recvPool;
-
-			ThreadPool m_cryptPool;
+			Ref<ThreadPool> m_pCryptPool;
+			Ref<ThreadPool> m_pCryptThreadPool;
 
 			std::mutex m_mtxSentCallbacks;
 			std::mutex m_mtxRecvCallbacks;

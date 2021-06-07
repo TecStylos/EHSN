@@ -3,8 +3,8 @@
 namespace EHSN {
 	namespace net {
 
-		SecAcceptor::SecAcceptor(const std::string& port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb, crypto::RandomDataGenerator rdg)
-			: m_acceptor(IOContext::get(), tcp::endpoint(tcp::v4(), std::stoi(port))), m_sFunc(sFunc), m_pParam(pParam), m_ecb(ecb), m_rdg(rdg)
+		SecAcceptor::SecAcceptor(const std::string& port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb, uint32_t nCryptThreadsPerSession, crypto::RandomDataGenerator rdg)
+			: m_acceptor(IOContext::get(), tcp::endpoint(tcp::v4(), std::stoi(port))), m_sFunc(sFunc), m_pParam(pParam), m_ecb(ecb), m_nCryptThreadsPerSession(nCryptThreadsPerSession), m_rdg(rdg)
 		{
 			assert(m_sFunc != nullptr);
 
@@ -98,7 +98,7 @@ namespace EHSN {
 
 		void SecAcceptor::newSession(bool noDelay)
 		{
-			auto sock = std::make_shared<SecSocket>(crypto::defaultRDG, std::thread::hardware_concurrency() / 2);
+			auto sock = std::make_shared<SecSocket>(crypto::defaultRDG, m_nCryptThreadsPerSession);
 			m_acceptor.accept(sock->m_sock);
 			sock->m_sock.set_option(tcp::no_delay(noDelay));
 			sock->setConnected(true);

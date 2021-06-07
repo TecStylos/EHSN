@@ -33,6 +33,7 @@ namespace EHSN {
 			* Constructor of SecSocket.
 			*
 			* @param rdg Random data generator used for generating the keys.
+			* @param nThreads Number of threads to use for en-/decryption. If 0, no separate threads will be used.
 			*/
 			SecSocket(crypto::RandomDataGenerator rdg, uint32_t nThreads);
 			~SecSocket() = default;
@@ -119,10 +120,16 @@ namespace EHSN {
 			*/
 			const DataMetrics& getDataMetrics() const;
 			/*
+			* Get the AES-Key used for en-/decrypting the data to send/receive.
+			* 
+			* @returns Underlying AES-Key.
+			*/
+			const Ref<crypto::aes::Key>& getAESKey() const;
+			/*
 			* Reset the data metrics.
 			*/
 			void resetDataMetrics();
-		protected:
+		public:
 			/*
 			* Read raw data from the socket.
 			*
@@ -139,7 +146,7 @@ namespace EHSN {
 			* @returns Number of bytes written to the socket.
 			*/
 			uint64_t writeRaw(const void* buffer, uint64_t nBytes);
-
+		protected:
 			/*
 			* Encrypt nBytes of data.
 			* Automatically chooses the threaded/non-threaded version.

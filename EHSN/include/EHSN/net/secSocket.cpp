@@ -96,6 +96,11 @@ namespace EHSN {
 			return m_dataMetrics;
 		}
 
+		const Ref<crypto::aes::Key>& SecSocket::getAESKey() const
+		{
+			return m_cryptData.aesKey;
+		}
+
 		void SecSocket::resetDataMetrics()
 		{
 			m_dataMetrics.reset();
