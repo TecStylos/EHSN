@@ -134,15 +134,13 @@ namespace EHSN {
 			* 
 			* The supplied packet buffer should not be used after calling this function.
 			* 
-			* @param header Header of the packet. See PacketHeader for details. (Especially which members must be initialized by the callee)
-			* @param buffer Packet buffer holding the data to be sent.
+			* @param pack The packet to send. See PacketHeader for information about what members should get initialized before a push.
+			* @returns Unique packet ID. (Can be used to wait until the packet has been sent.)
 			*/
-			PacketID push(PacketHeader& header, Ref<PacketBuffer> buffer);
+			PacketID push(Packet pack);
 			/*
 			* Pull a packet from the read-queue.
 			*
-			* The buffer in the returned packet should be released with calling releaseBuffer.
-			* It can also be pushed onto the queue without being released first.
 			* This function blocks until a matching buffer is available or the connection is lost.
 			*
 			* @param packType Type of the packet to be pulled.
@@ -220,8 +218,8 @@ namespace EHSN {
 			void pushRecvJob();
 			/*
 			* Sets the ID of the packet currently being sent.
-			*
-			* If pID is 0 the wait function gets notified that the packet has been sent.
+			* 
+			* Notifies all threads which are waiting on a 'sent' event.
 			*
 			* @param pID The ID of the packet currently being sent.
 			*/
@@ -238,6 +236,8 @@ namespace EHSN {
 
 			ThreadPool m_sendPool;
 			ThreadPool m_recvPool;
+
+			ThreadPool m_cryptPool;
 
 			std::mutex m_mtxSentCallbacks;
 			std::mutex m_mtxRecvCallbacks;

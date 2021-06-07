@@ -68,7 +68,7 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 		{
 			auto& queue = *(EHSN::net::ManagedSocket*)pParam;
 			pack.header.packetType = EHSN::net::SPT_PING_REPLY;
-			queue.push(pack.header, pack.buffer);
+			queue.push(pack);
 		},
 		&queue
 			);

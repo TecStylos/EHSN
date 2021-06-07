@@ -9,7 +9,7 @@ namespace EHSN {
 		}
 
 		ManagedSocket::ManagedSocket(Ref<SecSocket> sock)
-			: m_sock(sock), m_sendPool(1), m_recvPool(1)
+			: m_sock(sock), m_sendPool(1), m_recvPool(1), m_cryptPool(1)
 		{
 			if (m_sock->isConnected())
 				pushRecvJob();
@@ -44,20 +44,17 @@ namespace EHSN {
 
 		PacketID ManagedSocket::push(PacketType packetType, PacketFlags flags, Ref<PacketBuffer> buffer)
 		{
-			PacketHeader header;
-			header.packetType = packetType;
-			header.flags = flags;
+			Packet pack;
+			pack.header.packetType = packetType;
+			pack.header.flags = flags;
 
-			return push(header, buffer);
+			return push(pack);
 		}
 
-		PacketID ManagedSocket::push(PacketHeader& header, Ref<PacketBuffer> buffer)
+		PacketID ManagedSocket::push(Packet pack)
 		{
-			Packet pack;
-			pack.header = header;
 			pack.header.packetID = m_nextPacketID++;
-			pack.header.packetSize = buffer->size();
-			pack.buffer = buffer;
+			pack.header.packetSize = pack.buffer->size();
 
 			m_sendPool.pushJob(std::bind(&ManagedSocket::sendFunc, this, pack));
 
