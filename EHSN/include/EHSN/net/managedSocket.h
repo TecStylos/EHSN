@@ -143,6 +143,7 @@ namespace EHSN {
 			* Pull a packet from the read-queue.
 			*
 			* This function blocks until a matching buffer is available or the connection is lost.
+			* When packType == SPT_UNDEFINED, the first available packet of any type is returned.
 			*
 			* @param packType Type of the packet to be pulled.
 			* @returns The first packet with the specified type.
@@ -150,7 +151,7 @@ namespace EHSN {
 			Packet pull(PacketType packType);
 			/*
 			* Get the number of available packets matching the packet type.
-			* If packType == SPT_UNDEFINED, the sum of all available packets gets returned.
+			* When packType == SPT_UNDEFINED, the sum of all available packets gets returned.
 			*
 			* @param packType The packet type to check for.
 			* @returns The number of available packets matching the packet type.
