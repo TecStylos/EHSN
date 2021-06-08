@@ -229,16 +229,19 @@ namespace EHSN {
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
-			if (!m_sock->writeSecure(&packet.header, sizeof(PacketHeader)))
+			if (m_sock->writeSecure(&packet.header, sizeof(PacketHeader)) < sizeof(PacketHeader))
 			{
 				callSentCallback(packet, false);
 				return;
 			}
 
-			if (packet.header.packetSize > 0 && !m_sock->writeSecure(packet.buffer))
+			if (packet.header.packetSize)
 			{
-				callSentCallback(packet, false);
-				return;
+				if (m_sock->writeSecure(packet.buffer) < packet.buffer->size())
+				{
+					callSentCallback(packet, false);
+					return;
+				}
 			}
 			callSentCallback(packet, true);
 		}
@@ -247,16 +250,19 @@ namespace EHSN {
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
-			if (!m_sock->writeSecure(&packet.header, sizeof(PacketHeader)))
+			if (m_sock->writeSecure(&packet.header, sizeof(PacketHeader)) < sizeof(PacketHeader))
 			{
 				callSentCallback(packet, false);
 				return;
 			}
 
-			if (packet.header.packetSize > 0 && !m_sock->writeRaw(packet.buffer->data(), packet.buffer->size()))
+			if (packet.header.packetSize > 0)
 			{
-				callSentCallback(packet, false);
-				return;
+				if (m_sock->writeRaw(packet.buffer->data(), packet.buffer->size()) < packet.buffer->size())
+				{
+					callSentCallback(packet, false);
+					return;
+				}
 			}
 			callSentCallback(packet, true);
 		}
@@ -287,14 +293,14 @@ namespace EHSN {
 			if (!m_sock->isConnected())
 				goto NextIteration;
 
-			if (!m_sock->readSecure(&pack.header, sizeof(pack.header)))
+			if (m_sock->readSecure(&pack.header, sizeof(PacketHeader)) < sizeof(PacketHeader))
 				goto NextIteration;
 
 			if (pack.header.packetSize > 0)
 			{
 				pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
 
-				if (!m_sock->readSecure(pack.buffer))
+				if (m_sock->readSecure(pack.buffer) < pack.buffer->size())
 				{
 					callRecvCallback(pack, false);
 					goto NextIteration;
@@ -334,14 +340,15 @@ namespace EHSN {
 			if (!m_sock->isConnected())
 				goto NextIteration;
 
-			if (!m_sock->readSecure(&pack.header, sizeof(pack.header)))
+			if (m_sock->readSecure(&pack.header, sizeof(pack.header)) < sizeof(pack.header))
 				goto NextIteration;
 
 			if (pack.header.packetSize > 0)
 			{
 				pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
 
-				if (!m_sock->readRaw(pack.buffer->data(), crypto::aes::paddedSize(pack.buffer->size())))
+				uint64_t paddedSize = crypto::aes::paddedSize(pack.buffer->size());
+				if (m_sock->readRaw(pack.buffer->data(), paddedSize) < paddedSize)
 				{
 					callRecvCallback(pack, false);
 					goto NextIteration;

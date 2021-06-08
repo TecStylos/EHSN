@@ -242,6 +242,8 @@ int main(int argc, const char* argv[], const char* env[]) {
 			}
 			else if (*it == "ping")
 			{
+				uint64_t nPings = 10;
+
 				struct LambdaStruct
 				{
 					std::queue<uint64_t> pingQueue;
@@ -268,7 +270,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					&st
 				);
 
-				for (int i = 0; i < 10; ++i)
+				for (int i = 0; i < nPings; ++i)
 				{
 					auto buffer  = std::make_shared<EHSN::net::PacketBuffer>(sizeof(uint64_t));
 					uint64_t start = CURR_TIME_MS();
@@ -282,10 +284,8 @@ int main(int argc, const char* argv[], const char* env[]) {
 				}
 
 				uint64_t pingSum = 0;
-				uint64_t nPings = 0;
 				while (!st.pingQueue.empty())
 				{
-					++nPings;
 					pingSum += st.pingQueue.front();
 					st.pingQueue.pop();
 				}
