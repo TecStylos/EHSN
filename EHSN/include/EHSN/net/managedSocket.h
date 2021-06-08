@@ -255,6 +255,7 @@ namespace EHSN {
 			ThreadPool m_recvPool;
 			Ref<ThreadPool> m_pCryptPool;
 			Ref<ThreadPool> m_pCryptThreadPool;
+			ThreadPool m_callbackPool;
 
 			std::mutex m_mtxSentCallbacks;
 			std::mutex m_mtxRecvCallbacks;

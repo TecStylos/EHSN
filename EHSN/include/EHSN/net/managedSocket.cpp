@@ -9,7 +9,7 @@ namespace EHSN {
 		}
 
 		ManagedSocket::ManagedSocket(Ref<SecSocket> sock, uint32_t nThreads)
-			: m_sock(sock), m_sendPool(1), m_recvPool(1)
+			: m_sock(sock), m_sendPool(1), m_recvPool(1), m_callbackPool(1)
 		{
 			if (nThreads > 0)
 			{
@@ -61,7 +61,10 @@ namespace EHSN {
 		PacketID ManagedSocket::push(Packet pack)
 		{
 			pack.header.packetID = m_nextPacketID++;
-			pack.header.packetSize = pack.buffer->size();
+			if (pack.buffer)
+				pack.header.packetSize = pack.buffer->size();
+			else
+				pack.header.packetSize = 0;
 
 			if (m_pCryptThreadPool)
 				m_pCryptPool->pushJob(std::bind(&ManagedSocket::makeSendableJob, this, pack));
@@ -74,21 +77,40 @@ namespace EHSN {
 		Packet ManagedSocket::pull(PacketType packType)
 		{
 			Packet pack;
-			while (!pack.buffer && m_sock->isConnected())
+			bool gotPack = false;
+			while (m_sock->isConnected())
 			{
 				std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
-				auto typeIterator = m_recvQueue.find(packType);
-				if (typeIterator != m_recvQueue.end() &&
-					!typeIterator->second.empty())
+
+				if (packType == SPT_UNDEFINED)
 				{
-					pack = typeIterator->second.front();
-					typeIterator->second.pop();
+					for (auto& it : m_recvQueue)
+					{
+						if (!it.second.empty())
+						{
+							pack = it.second.front();
+							it.second.pop();
+							gotPack = true;
+						}
+					}
 				}
 				else
 				{
-					m_recvNotify.wait(lock, [this] { return m_recvAvail || !m_sock->isConnected(); });
-					m_recvAvail = false;
+					auto typeIterator = m_recvQueue.find(packType);
+					if (typeIterator != m_recvQueue.end() &&
+						!typeIterator->second.empty())
+					{
+						pack = typeIterator->second.front();
+						typeIterator->second.pop();
+						gotPack = true;
+					}
 				}
+
+				if (gotPack)
+					break;
+
+				m_recvNotify.wait(lock, [this] { return m_recvAvail || !m_sock->isConnected(); });
+				m_recvAvail = false;
 			}
 
 			return pack;
@@ -187,7 +209,7 @@ namespace EHSN {
 			if (iterator == m_sentCallbacks.end())
 				return false;
 
-			iterator->second.callback(pack.header.packetID, success, iterator->second.pParam);
+			m_callbackPool.pushJob(std::bind(iterator->second.callback, pack.header.packetID, success, iterator->second.pParam));
 			return true;
 		}
 
@@ -198,7 +220,8 @@ namespace EHSN {
 			auto iterator = m_recvCallbacks.find(pack.header.packetType);
 			if (iterator == m_recvCallbacks.end())
 				return false;
-			iterator->second.callback(pack, success, iterator->second.pParam);
+
+			m_callbackPool.pushJob(std::bind(iterator->second.callback, pack, success, iterator->second.pParam));
 			return true;
 		}
 
@@ -206,54 +229,53 @@ namespace EHSN {
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
-			if (packet.buffer)
+			if (!m_sock->writeSecure(&packet.header, sizeof(PacketHeader)))
 			{
-				if (!m_sock->writeSecure(&packet.header, sizeof(PacketHeader)))
-				{
-					callSentCallback(packet, false);
-					return;
-				}
-				if (!m_sock->writeSecure(packet.buffer))
-				{
-					callSentCallback(packet, false);
-					return;
-				}
-				callSentCallback(packet, true);
+				callSentCallback(packet, false);
+				return;
 			}
+
+			if (packet.header.packetSize > 0 && !m_sock->writeSecure(packet.buffer))
+			{
+				callSentCallback(packet, false);
+				return;
+			}
+			callSentCallback(packet, true);
 		}
 
 		void ManagedSocket::sendJobNoEncrypt(Packet packet)
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
-			if (packet.buffer)
+			if (!m_sock->writeSecure(&packet.header, sizeof(PacketHeader)))
 			{
-				if (!m_sock->writeSecure(&packet.header, sizeof(PacketHeader)))
-				{
-					callSentCallback(packet, false);
-					return;
-				}
-				if (!m_sock->writeRaw(packet.buffer->data(), packet.buffer->size()))
-				{
-					callSentCallback(packet, false);
-					return;
-				}
-				callSentCallback(packet, true);
+				callSentCallback(packet, false);
+				return;
 			}
+
+			if (packet.header.packetSize > 0 && !m_sock->writeRaw(packet.buffer->data(), packet.buffer->size()))
+			{
+				callSentCallback(packet, false);
+				return;
+			}
+			callSentCallback(packet, true);
 		}
 
 		void ManagedSocket::makeSendableJob(Packet packet)
 		{
-			uint64_t newSize = crypto::aes::encryptThreaded(
-				packet.buffer->data(),
-				packet.buffer->size(),
-				packet.buffer->data(),
-				m_sock->getAESKey(),
-				true,
-				m_pCryptThreadPool->size(),
-				m_pCryptThreadPool
-			);
-			packet.buffer->resize(newSize);
+			if (packet.header.packetSize > 0)
+			{
+				uint64_t newSize = crypto::aes::encryptThreaded(
+					packet.buffer->data(),
+					packet.buffer->size(),
+					packet.buffer->data(),
+					m_sock->getAESKey(),
+					true,
+					m_pCryptThreadPool->size(),
+					m_pCryptThreadPool
+				);
+				packet.buffer->resize(newSize);
+			}
 
 			m_sendPool.pushJob(std::bind(&ManagedSocket::sendJobNoEncrypt, this, packet));
 		}
