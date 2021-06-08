@@ -88,7 +88,7 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 
 int main(int argc, const char* argv[], const char* env[]) {
 
-	bool runServer = false;
+	bool runServer = true;
 	for (int i = 0; i < argc; ++i)
 	{
 		std::string arg = argv[i];
@@ -201,7 +201,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 				std::cout << "    Running data test..." << std::endl;
 
 				constexpr uint64_t packetSize = 100 * 1000 * 1000;
-				uint64_t nPackets = 10;
+				uint64_t nPackets = 5;
 
 				std::cout << "     Sending packets..." << std::endl;
 
