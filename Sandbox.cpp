@@ -290,7 +290,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					st.pingQueue.pop();
 				}
 
-				queue.setRecvCallback(EHSN::net::SPT_PING, nullptr, nullptr);
+				queue.setRecvCallback(EHSN::net::SPT_PING_REPLY, nullptr, nullptr);
 
 				std::cout << "   Number of collected pings: " << nPings << std::endl;
 				std::cout << "   Average ping: " << (pingSum / nPings) << " ms" << std::endl;
