@@ -229,7 +229,7 @@ namespace EHSN {
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
-			if (m_sock->writeSecure(&packet.header, sizeof(PacketHeader)) < sizeof(PacketHeader))
+			if (m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false) < sizeof(PacketHeader))
 			{
 				callSentCallback(packet, false);
 				return;
@@ -250,7 +250,7 @@ namespace EHSN {
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
-			if (m_sock->writeSecure(&packet.header, sizeof(PacketHeader)) < sizeof(PacketHeader))
+			if (m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false) < sizeof(PacketHeader))
 			{
 				callSentCallback(packet, false);
 				return;

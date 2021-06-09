@@ -4,25 +4,53 @@
 #include <string>
 
 #include "EHSN/crypto.h"
+#include "EHSN/CircularBuffer.h"
 
 #include "ioContext.h"
 #include "packets.h"
 #include "packetBuffer.h"
+
+#define CURR_TIME_NS() std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count()
 
 namespace EHSN {
 	namespace net {
 
 		class DataMetrics
 		{
+			struct SpeedPoint
+			{
+				SpeedPoint(float bps = 0.0f, uint64_t ts = 0)
+					: bytesPerSec(bps), tStart(ts)
+				{}
+			public:
+				float bytesPerSec = 0;
+				uint64_t tStart = 0;
+			};
+		public:
+			DataMetrics(uint64_t nPoints)
+				: m_writeSpeed(nPoints)
+			{}
 		public:
 			void reset() { m_nRead = 0; m_nWritten = 0; }
-			void addRead(uint64_t size) { m_nRead += size; }
-			void addWritten(uint64_t size) { m_nWritten += size; }
+			void addReadOp(uint64_t size) { m_nRead += size; }
+			void addWriteOp(uint64_t size) { m_nWritten += size; }
+			void addWriteOp(uint64_t size, uint64_t tStart, uint64_t tEnd) { addWriteOp(size); m_writeSpeed.push(SpeedPoint(float(size) / ((tEnd - tStart) / 1000.0f / 1000.0f / 1000.0f), tStart)); }
 			uint64_t nRead() const { return m_nRead; };
 			uint64_t nWritten() const { return m_nWritten; };
+			float avgWriteSpeed() const { return avgSpeed(m_writeSpeed); }
+			float lastWriteSpeed() const { return m_writeSpeed[0].bytesPerSec; }
+		private:
+			static float avgSpeed(const CircularBuffer<SpeedPoint>& buff)
+			{
+				float speedSum = 0.0f;
+				for (uint64_t i = 0; i < buff.size(); ++i)
+					speedSum += buff[i].bytesPerSec;
+				return speedSum / buff.size();
+			}
 		private:
 			uint64_t m_nRead = 0;
 			uint64_t m_nWritten = 0;
+			CircularBuffer<SpeedPoint> m_writeSpeed;
 		};
 
 		class SecSocket
@@ -93,9 +121,10 @@ namespace EHSN {
 			* The data in buffer may be partially or fully changed.
 			*
 			* @param buffer The buffer to read the data from.
+			* @param measureTime Measure the time it takes to send the buffer if set to true.
 			* @returns Number of bytes written to the socket.
 			*/
-			uint64_t writeSecure(Ref<PacketBuffer> buffer);
+			uint64_t writeSecure(Ref<PacketBuffer> buffer, bool measureTime = true);
 			/*
 			* Encrypt data in-place and write it to the socket.
 			*
@@ -103,9 +132,10 @@ namespace EHSN {
 			*
 			* @param buffer The buffer to encrypt and write to the socket Size must be a multiple of AES_BLOCK_SIZE!.
 			* @param nBytes Number of bytes to write to the socket.
+			* @param measureTime Measure the time it takes to send the buffer if set to true.
 			* @returns Number of bytes written to the socket.
 			*/
-			uint64_t writeSecure(void* buffer, uint64_t nBytes);
+			uint64_t writeSecure(void* buffer, uint64_t nBytes, bool measureTime = true);
 		public:
 			/*
 			* Get the IP address of the remote endpoint.
@@ -143,9 +173,10 @@ namespace EHSN {
 			*
 			* @param buffer Buffer to read the data from.
 			* @param nBytes Number of bytes to write to the socket.
+			* @param measureTime Measure the time it takes to send the buffer if set to true.
 			* @returns Number of bytes written to the socket.
 			*/
-			uint64_t writeRaw(const void* buffer, uint64_t nBytes);
+			uint64_t writeRaw(const void* buffer, uint64_t nBytes, bool measureTime = true);
 		protected:
 			/*
 			* Encrypt nBytes of data.

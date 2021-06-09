@@ -56,8 +56,6 @@ std::vector<std::string> splitCommand(const std::string& command) {
 	return commandParts;
 }
 
-#define CURR_TIME_MS() std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count()
-
 enum CUSTOM_PACKET_TYPES : EHSN::net::PacketType {
 	CPT_RAW_DATA = EHSN::net::SPT_FIRST_FREE_PACKET_TYPE,
 };
@@ -88,7 +86,7 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 
 int main(int argc, const char* argv[], const char* env[]) {
 
-	bool runServer = true;
+	bool runServer = false;
 	for (int i = 0; i < argc; ++i)
 	{
 		std::string arg = argv[i];
@@ -200,8 +198,8 @@ int main(int argc, const char* argv[], const char* env[]) {
 			{
 				std::cout << "    Running data test..." << std::endl;
 
-				constexpr uint64_t packetSize = 100 * 1000 * 1000;
-				uint64_t nPackets = 5;
+				constexpr uint64_t packetSize = 10 * 1000 * 1000;
+				uint64_t nPackets = 10;
 
 				std::cout << "     Sending packets..." << std::endl;
 
@@ -213,32 +211,36 @@ int main(int argc, const char* argv[], const char* env[]) {
 					buffers[i]->write(i);
 				}
 
-				uint64_t begin = CURR_TIME_MS();
+				uint64_t begin = CURR_TIME_NS();
 
 				EHSN::net::PacketID lastPacketID;
 				for (uint64_t i = 0; i < nPackets; ++i)
 					queue.push(CPT_RAW_DATA, EHSN::net::FLAG_PH_NONE, buffers[i]);
 				{
 					auto pingBuffer = std::make_shared<EHSN::net::PacketBuffer>(sizeof(uint64_t));
-					uint64_t start = CURR_TIME_MS();
+					uint64_t start = CURR_TIME_NS();
 					pingBuffer->write(start);
 					queue.push(EHSN::net::SPT_PING, EHSN::net::FLAG_PH_NONE, pingBuffer);
 					queue.pull(EHSN::net::SPT_PING_REPLY);
 				}
 
-				uint64_t end = CURR_TIME_MS();
+				uint64_t end = CURR_TIME_NS();
 
 				uint64_t timeSum = end - begin;
 
+				float timeInSec = timeSum / 1000.0f / 1000.0f / 1000.0f;
+
 				float sentData = (float)(nPackets * packetSize) / 1000.0f / 1000.0f;
-				float timePerPacket = (float)timeSum / (float)nPackets;
-				float dataPerTime = sentData / timeSum * 1000.0f * 8;
+				float secPerPacket = timeInSec / (float)nPackets;
+				float dataPerSec = sentData / timeInSec * 8;
 
 				std::cout << "   Data sent:       " << sentData << " MB" << std::endl;
 				std::cout << "   Packets sent:    " << nPackets << std::endl;
-				std::cout << "   Time:            " << (timeSum) << " ms" << std::endl;
-				std::cout << "   Time per packet: " << timePerPacket << " ms" << std::endl;
-				std::cout << "   Data/Time:       " << dataPerTime << " Mbps" << std::endl;
+				std::cout << "   Time:            " << timeInSec << " sec" << std::endl;
+				std::cout << "   Time per packet: " << secPerPacket << " sec" << std::endl;
+				std::cout << "   Data/Time:       " << dataPerSec << " Mbps" << std::endl;
+
+				std::cout << "   Raw write speed: " << (queue.getSock()->getDataMetrics().avgWriteSpeed() / 1000.0f / 1000.0f) << " MBps" << std::endl;
 			}
 			else if (*it == "ping")
 			{
@@ -258,7 +260,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 					[](EHSN::net::Packet pack, bool success, void* pParam)
 					{
 						auto& st = *(LambdaStruct*)pParam;
-						uint64_t end = CURR_TIME_MS();
+						uint64_t end = CURR_TIME_NS();
 						st.pingQueue.push(end - *(uint64_t*)pack.buffer->data());
 
 						{
@@ -273,7 +275,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 				for (int i = 0; i < nPings; ++i)
 				{
 					auto buffer  = std::make_shared<EHSN::net::PacketBuffer>(sizeof(uint64_t));
-					uint64_t start = CURR_TIME_MS();
+					uint64_t start = CURR_TIME_NS();
 					buffer->write(start);
 					queue.push(EHSN::net::SPT_PING, EHSN::net::FLAG_PH_NONE, buffer);
 					EHSN::net::PacketHeader header;

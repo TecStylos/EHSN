@@ -6,7 +6,7 @@ namespace EHSN {
 	namespace net {
 
 		SecSocket::SecSocket(crypto::RandomDataGenerator rdg, uint32_t nCryptThreads)
-			: m_sock(IOContext::get()), m_rdg(rdg)
+			: m_sock(IOContext::get()), m_rdg(rdg), m_dataMetrics(10)
 		{
 			if (nCryptThreads > 0)
 				m_cryptData.threadPool = std::make_shared<ThreadPool>(nCryptThreads);
@@ -65,15 +65,15 @@ namespace EHSN {
 			return (nRead >= nBytes) ? nBytes : nRead;
 		}
 
-		uint64_t SecSocket::writeSecure(Ref<PacketBuffer> buffer)
+		uint64_t SecSocket::writeSecure(Ref<PacketBuffer> buffer, bool measureTime)
 		{
-			return writeSecure(buffer->data(), buffer->size());
+			return writeSecure(buffer->data(), buffer->size(), measureTime);
 		}
 
-		uint64_t SecSocket::writeSecure(void* buffer, uint64_t nBytes)
+		uint64_t SecSocket::writeSecure(void* buffer, uint64_t nBytes, bool measureTime)
 		{
 			uint64_t nEncrypted = autoEncrypt(buffer, nBytes, buffer, m_cryptData.aesKey, true);
-			uint64_t nWritten = writeRaw(buffer, nEncrypted);
+			uint64_t nWritten = writeRaw(buffer, nEncrypted, measureTime);
 
 			return nWritten;
 		}
@@ -115,21 +115,28 @@ namespace EHSN {
 			if (ec)
 				setConnected(false);
 
-			m_dataMetrics.addRead(nRead);
+			m_dataMetrics.addReadOp(nRead);
 
 			return nRead;
 		}
 
-		uint64_t SecSocket::writeRaw(const void* buffer, uint64_t nBytes)
+		uint64_t SecSocket::writeRaw(const void* buffer, uint64_t nBytes, bool measureTime)
 		{
 			asio::error_code ec;
 
+			uint64_t tStart = CURR_TIME_NS();
+
 			uint64_t nWritten = asio::write(m_sock, asio::buffer(buffer, nBytes), ec);
+
+			uint64_t tStop = CURR_TIME_NS();
 
 			if (ec)
 				setConnected(false);
 
-			m_dataMetrics.addWritten(nWritten);
+			if (measureTime)
+				m_dataMetrics.addWriteOp(nWritten, tStart, tStop);
+			else
+				m_dataMetrics.addWriteOp(nWritten);
 
 			return nWritten;
 		}

@@ -16,7 +16,7 @@ add_library (
 	"include/EHSN/net/secAcceptor.cpp"
 	"include/EHSN/net/secSocket.cpp"
 	"include/EHSN/ThreadPool.cpp"
-)
+ "include/EHSN/CircularBuffer.h")
 
 # Cross-Platform Include Directories
 target_include_directories (
@@ -54,7 +54,7 @@ elseif (WIN32) # Windows specific
 	# Include directories
 	target_include_directories (
 		EHSN PUBLIC
-		"C:\\dev\\vendor-libs\\openssl\\include"
+		OPENSSL_INCLUDE_DIR
 		"vendor/asio/asio/include"
 	)
 
