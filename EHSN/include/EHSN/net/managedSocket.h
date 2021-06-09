@@ -57,6 +57,8 @@ namespace EHSN {
 			SPT_PING,
 			SPT_PING_REPLY,
 			SPT_CHANGE_AES_KEY, // Currently unused
+			SPT_KEEP_ALIVE_REQUEST, // Can be sent to tell the remote side that the connection should be kept alive. This Type has a built-in recvCallback!
+			SPT_KEEP_ALIVE_REPLY, // Sent after a SPT_KEEP_ALIVE_REQUEST has been received (default behavior)
 			SPT_FIRST_FREE_PACKET_TYPE // Can be used to determine the associated value of the first user-defined packet type. All previous/smaller values are reserved.
 		};
 
@@ -156,13 +158,13 @@ namespace EHSN {
 			* @param packType The packet type to check for.
 			* @returns The number of available packets matching the packet type.
 			*/
-			uint64_t nAvailable(PacketType packType);
+			uint64_t nPullable(PacketType packType);
 			/*
 			* Get the packet types for which are one or more packets in the receive queue.
 			* 
 			* @returns Vector containing every packet type for which one or more packets are in the receive queue.
 			*/
-			std::vector<PacketType> typesAvailable();
+			std::vector<PacketType> typesPullable();
 			/*
 			* Wait until a specific packet has been sent.
 			*

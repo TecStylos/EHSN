@@ -17,6 +17,19 @@ namespace EHSN {
 				m_pCryptThreadPool = std::make_shared<ThreadPool>(nThreads);
 			}
 
+			setRecvCallback(
+				SPT_KEEP_ALIVE_REQUEST,
+				[](Packet pack, bool success, void* pParam)
+				{
+					if (!success)
+						return;
+
+					auto& manSock = *(ManagedSocket*)pParam;
+					manSock.push(SPT_KEEP_ALIVE_REPLY, FLAG_PH_NONE, nullptr);
+				},
+				this
+					);
+
 			if (m_sock->isConnected())
 				pushRecvJob();
 		}
@@ -116,7 +129,7 @@ namespace EHSN {
 			return pack;
 		}
 
-		uint64_t ManagedSocket::nAvailable(PacketType packType)
+		uint64_t ManagedSocket::nPullable(PacketType packType)
 		{
 			std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
 			
@@ -134,7 +147,7 @@ namespace EHSN {
 			return typeIterator->second.size();
 		}
 
-		std::vector<PacketType> ManagedSocket::typesAvailable()
+		std::vector<PacketType> ManagedSocket::typesPullable()
 		{
 			std::vector<PacketType> pTypes;
 			std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
@@ -235,7 +248,7 @@ namespace EHSN {
 				return;
 			}
 
-			if (packet.header.packetSize)
+			if (packet.buffer)
 			{
 				if (m_sock->writeSecure(packet.buffer) < packet.buffer->size())
 				{
@@ -256,7 +269,7 @@ namespace EHSN {
 				return;
 			}
 
-			if (packet.header.packetSize > 0)
+			if (packet.buffer)
 			{
 				if (m_sock->writeRaw(packet.buffer->data(), packet.buffer->size()) < packet.buffer->size())
 				{
@@ -269,7 +282,7 @@ namespace EHSN {
 
 		void ManagedSocket::makeSendableJob(Packet packet)
 		{
-			if (packet.header.packetSize > 0)
+			if (packet.buffer)
 			{
 				uint64_t newSize = crypto::aes::encryptThreaded(
 					packet.buffer->data(),
@@ -365,15 +378,18 @@ namespace EHSN {
 
 		void ManagedSocket::makePullableJob(Packet packet)
 		{
-			crypto::aes::decryptThreaded(
-				packet.buffer->data(),
-				packet.buffer->size(),
-				packet.buffer->data(),
-				m_sock->getAESKey(),
-				true,
-				m_pCryptThreadPool->size(),
-				m_pCryptThreadPool
-			);
+			if (packet.buffer)
+			{
+				crypto::aes::decryptThreaded(
+					packet.buffer->data(),
+					packet.buffer->size(),
+					packet.buffer->data(),
+					m_sock->getAESKey(),
+					true,
+					m_pCryptThreadPool->size(),
+					m_pCryptThreadPool
+				);
+			}
 
 			if (!callRecvCallback(packet, true))
 			{

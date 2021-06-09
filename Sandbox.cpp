@@ -67,6 +67,9 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 		EHSN::net::SPT_PING,
 		[](EHSN::net::Packet pack, bool success, void* pParam)
 		{
+			if (!success)
+				return;
+
 			std::cout << "    Got ping request!" << std::endl;
 			auto& queue = *(EHSN::net::ManagedSocket*)pParam;
 			pack.header.packetType = EHSN::net::SPT_PING_REPLY;
@@ -74,11 +77,51 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 		},
 		&queue
 			);
+
+	queue.setRecvCallback(
+		CPT_RAW_DATA,
+		[](EHSN::net::Packet pack, bool success, void* pParam)
+		{
+			if (!success)
+				return;
+
+			std::cout << "    Got raw data!" << std::endl;
+		},
+		nullptr
+			);
 	
+	uint64_t nWrittenLast = 0;
+	uint64_t nReadLast = 0;
+	bool sentAliveRequest = false;
+
 	while (sock->isConnected())
 	{
-		std::cout << "  Pulling buffer..." << std::endl;
-		EHSN::net::Packet pack = queue.pull(CPT_RAW_DATA);
+		std::this_thread::sleep_for(std::chrono::seconds(10));
+
+		if (sentAliveRequest)
+		{
+			sentAliveRequest = false;
+			if (queue.nPullable(EHSN::net::SPT_KEEP_ALIVE_REPLY))
+			{
+				queue.pull(EHSN::net::SPT_KEEP_ALIVE_REPLY);
+			}
+			else
+				queue.disconnect();
+			continue;
+		}
+
+		uint64_t nWrittenNew = sock->getDataMetrics().nWritten();
+		uint64_t nReadNew = sock->getDataMetrics().nRead();
+
+		if (nWrittenNew == nWrittenLast && nReadNew == nReadLast)
+		{
+			queue.push(EHSN::net::SPT_KEEP_ALIVE_REQUEST, EHSN::net::FLAG_PH_NONE, nullptr);
+			sentAliveRequest = true;
+		}
+
+		nWrittenLast = nWrittenNew;
+		nReadLast = nReadNew;
+		continue;
 	}
 
 	std::cout << "  Lost connection to client!" << std::endl;
@@ -216,6 +259,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 				EHSN::net::PacketID lastPacketID;
 				for (uint64_t i = 0; i < nPackets; ++i)
 					queue.push(CPT_RAW_DATA, EHSN::net::FLAG_PH_NONE, buffers[i]);
+
 				{
 					auto pingBuffer = std::make_shared<EHSN::net::PacketBuffer>(sizeof(uint64_t));
 					uint64_t start = CURR_TIME_NS();
@@ -259,6 +303,9 @@ int main(int argc, const char* argv[], const char* env[]) {
 					EHSN::net::SPT_PING_REPLY,
 					[](EHSN::net::Packet pack, bool success, void* pParam)
 					{
+						if (!success)
+							return;
+
 						auto& st = *(LambdaStruct*)pParam;
 						uint64_t end = CURR_TIME_NS();
 						st.pingQueue.push(end - *(uint64_t*)pack.buffer->data());
