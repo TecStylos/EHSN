@@ -69,24 +69,24 @@ namespace EHSN {
 			* This function gets called when a packet was sent.
 			*
 			* @param pID The ID of the packet that was sent.
-			* @param success True if the packet was sent. False when it could not be sent.
+			* @param nBytesSent The number of bytes that have been sent. Same value as pack.header.packetSize on success.
 			* @param pParam Pointer to user defined data.
 			*/
-			typedef void (*PacketSentCallback)(PacketID pID, bool success, void* pParam);
+			typedef void (*PacketSentCallback)(PacketID pID, uint64_t nBytesSent, void* pParam);
 			/*
 			* This function gets called when a packet was received.
 			*
 			* @param pack The packet that was received.
-			* @param success Set to true if the buffer was received. Otherwise false.
+			* @param nBytesReceived The number of bytes that have been received. Same value as pack.header.packetSize on success.
 			* @param pParam Pointer to user defined data.
 			*/
-			typedef void (*PacketRecvCallback)(Packet pack, bool success, void* pParam);
+			typedef void (*PacketRecvCallback)(Packet pack, uint64_t nBytesReceived, void* pParam);
 
 			template<typename T>
 			struct CallbackData
 			{
 				T callback;
-				void* pParam;
+				void* pParam; // Data shared between multiple callbacks (send AND recv) must not be thread safe, as long as it won't be accessed outside of the callbacks. Only one callback is called at a time for the same connection.
 			};
 			/*
 			* Constructor of ManagedSocket.
@@ -196,18 +196,18 @@ namespace EHSN {
 			* Call the corresponding callback to the packet type.
 			*
 			* @param pack The packet that has been sent/tried to send.
-			* @param succes Set to true if the packet was successful sent. Otherwise false.
+			* @param nBytesSent The number of bytes that have been sent. Same value as pack.header.packetSize on success.
 			* @returns True if a corresponding callback was found and called. Otherwise false.
 			*/
-			bool callSentCallback(const Packet& pack, bool success);
+			bool callSentCallback(const Packet& pack, uint64_t nBytesSent);
 			/*
 			* Call the corresponding callback to the packet type.
 			*
 			* @param pack The packet that has been received/tried to receive.
-			* @param success Set to true if the buffer was successful received. Otherwise false.
+			* @param nBytesReceived The number of bytes that have been received. Same value as pack.header.packetSize on success.
 			* @returns True if a corresponding callback was found and called. Otherwise false.
 			*/
-			bool callRecvCallback(Packet& pack, bool success);
+			bool callRecvCallback(Packet& pack, uint64_t nBytesReceived);
 			/*
 			* Thread function for sending packets whose buffer is not encrypted.
 			*/
@@ -218,6 +218,8 @@ namespace EHSN {
 			void sendJobNoEncrypt(Packet packet);
 			/*
 			* Thread function for encrypting packet buffers and creating the corresponding sendJob.
+			* 
+			* @param packet The packet to encrypt.
 			*/
 			void makeSendableJob(Packet packet);
 			/*
@@ -230,8 +232,11 @@ namespace EHSN {
 			void recvJobNoDecrypt();
 			/*
 			* Thread function for decrypting packet buffers and pushing them onto the recvQueue.
+			* 
+			* @param packet The packet to decrypt.
+			* @param nRead The number of bytes that have been read.
 			*/
-			void makePullableJob(Packet packet);
+			void makePullableJob(Packet packet, uint64_t nRead);
 			/*
 			* Push a job onto m_recvPool to keep it alive.
 			*/

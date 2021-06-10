@@ -12,6 +12,11 @@
 
 #define CURR_TIME_NS() std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count()
 
+constexpr uint64_t operator"" _B(uint64_t val) { return val; }
+constexpr uint64_t operator"" _KB(uint64_t val) { return val * 1000_B; }
+constexpr uint64_t operator"" _MB(uint64_t val) { return val * 1000_KB; }
+constexpr uint64_t operator"" _GB(uint64_t val) { return val * 1000_MB; }
+
 namespace EHSN {
 	namespace net {
 

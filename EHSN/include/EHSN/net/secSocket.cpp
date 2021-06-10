@@ -62,7 +62,7 @@ namespace EHSN {
 			uint64_t nRead = readRaw(buffer, crypto::aes::paddedSize(nBytes));
 			if (nRead) autoDecrypt(buffer, nRead, buffer, m_cryptData.aesKey, true);
 
-			return (nRead >= nBytes) ? nBytes : nRead;
+			return std::min(nBytes, nRead);
 		}
 
 		uint64_t SecSocket::writeSecure(Ref<PacketBuffer> buffer, bool measureTime)
@@ -75,7 +75,7 @@ namespace EHSN {
 			uint64_t nEncrypted = autoEncrypt(buffer, nBytes, buffer, m_cryptData.aesKey, true);
 			uint64_t nWritten = writeRaw(buffer, nEncrypted, measureTime);
 
-			return nWritten;
+			return std::min(nBytes, nWritten);
 		}
 
 		packets::IPAddress SecSocket::getRemoteIP() const
@@ -130,13 +130,13 @@ namespace EHSN {
 
 			uint64_t tStop = CURR_TIME_NS();
 
-			if (ec)
-				setConnected(false);
-
 			if (measureTime)
 				m_dataMetrics.addWriteOp(nWritten, tStart, tStop);
 			else
 				m_dataMetrics.addWriteOp(nWritten);
+
+			if (ec)
+				setConnected(false);
 
 			return nWritten;
 		}

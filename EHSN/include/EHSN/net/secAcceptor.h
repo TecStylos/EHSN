@@ -24,10 +24,9 @@ namespace EHSN {
 			* @param sFunc User defined function that gets called after a secure connection was established.
 			* @param pParam User defined data passed to sFunc and ecb calls. May be NULL.
 			* @param ecb User defined exception callback for non-handled std::exception's in sFunc. May be NULL.
-			* @param nCryptThreadsPerSession Number of threads used for en-/decryption per session/socket.
 			* @param rdg Random data generator used for generating the keys. (Currently unused)
 			*/
-			SecAcceptor(const std::string& port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb, uint32_t nCryptThreadsPerSession = 0, crypto::RandomDataGenerator rdg = crypto::defaultRDG);
+			SecAcceptor(const std::string& port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb, crypto::RandomDataGenerator rdg = crypto::defaultRDG);
 			~SecAcceptor() = default;
 		public:
 			/*
@@ -37,8 +36,9 @@ namespace EHSN {
 			* This function is blocking.
 			*
 			* @param noDelay If set to true latency may be improved, but bandwidth usage increased.
+			* @param nCryptThreads Number of threads used for en-/decryption per session/socket.
 			*/
-			void newSession(bool noDelay = false);
+			void newSession(bool noDelay = false, uint32_t nCryptThreads = 0);
 		private:
 			/*
 			* Run the session.
@@ -86,7 +86,6 @@ namespace EHSN {
 			ExceptionCallback m_ecb;
 			crypto::rsa::KeyPair m_rsaKeyPair;
 			crypto::RandomDataGenerator m_rdg;
-			uint32_t m_nCryptThreadsPerSession;
 		};
 
 	} // namespace net

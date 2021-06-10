@@ -31,6 +31,7 @@ std::vector<std::string> splitCommand(const std::string& command) {
 				}
 			}
 			break;
+		}
 		case '"':
 		{
 			if (!currPart.empty())
@@ -45,7 +46,6 @@ std::vector<std::string> splitCommand(const std::string& command) {
 		{
 			currPart.push_back(c);
 			break;
-		}
 		}
 		}
 	}
@@ -65,9 +65,9 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 
 	queue.setRecvCallback(
 		EHSN::net::SPT_PING,
-		[](EHSN::net::Packet pack, bool success, void* pParam)
+		[](EHSN::net::Packet pack, uint64_t nBytesReceived, void* pParam)
 		{
-			if (!success)
+			if (nBytesReceived < pack.header.packetSize)
 				return;
 
 			std::cout << "    Got ping request!" << std::endl;
@@ -80,9 +80,9 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 
 	queue.setRecvCallback(
 		CPT_RAW_DATA,
-		[](EHSN::net::Packet pack, bool success, void* pParam)
+		[](EHSN::net::Packet pack, uint64_t nBytesReceived, void* pParam)
 		{
-			if (!success)
+			if (nBytesReceived < pack.header.packetSize)
 				return;
 
 			std::cout << "    Got raw data!" << std::endl;
@@ -129,7 +129,7 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 
 int main(int argc, const char* argv[], const char* env[]) {
 
-	bool runServer = false;
+	bool runServer = true;
 	for (int i = 0; i < argc; ++i)
 	{
 		std::string arg = argv[i];
@@ -150,11 +150,11 @@ int main(int argc, const char* argv[], const char* env[]) {
 	if (runServer)
 	{
 		std::cout << "Creating secAcceptor..." << std::endl;
-		EHSN::net::SecAcceptor acceptor("10000", sessionFunc, nullptr, nullptr, 0);
+		EHSN::net::SecAcceptor acceptor("10000", sessionFunc, nullptr, nullptr);
 		while (true)
 		{
 			std::cout << "Waiting for connection..." << std::endl;
-			acceptor.newSession(noDelay);
+			acceptor.newSession(noDelay, 0);
 			std::cout << "  New connection accepted!" << std::endl;
 		}
 
@@ -241,8 +241,8 @@ int main(int argc, const char* argv[], const char* env[]) {
 			{
 				std::cout << "    Running data test..." << std::endl;
 
-				constexpr uint64_t packetSize = 10 * 1000 * 1000;
-				uint64_t nPackets = 10;
+				constexpr uint64_t packetSize = 25_MB;
+				constexpr uint64_t nPackets = 10;
 
 				std::cout << "     Sending packets..." << std::endl;
 
@@ -259,7 +259,6 @@ int main(int argc, const char* argv[], const char* env[]) {
 				EHSN::net::PacketID lastPacketID;
 				for (uint64_t i = 0; i < nPackets; ++i)
 					queue.push(CPT_RAW_DATA, EHSN::net::FLAG_PH_NONE, buffers[i]);
-
 				{
 					auto pingBuffer = std::make_shared<EHSN::net::PacketBuffer>(sizeof(uint64_t));
 					uint64_t start = CURR_TIME_NS();
@@ -301,14 +300,16 @@ int main(int argc, const char* argv[], const char* env[]) {
 				queue.setRecvCallback
 				(
 					EHSN::net::SPT_PING_REPLY,
-					[](EHSN::net::Packet pack, bool success, void* pParam)
+					[](EHSN::net::Packet pack, uint64_t nBytesReceived, void* pParam)
 					{
-						if (!success)
+						if (nBytesReceived < pack.header.packetSize)
 							return;
 
 						auto& st = *(LambdaStruct*)pParam;
 						uint64_t end = CURR_TIME_NS();
-						st.pingQueue.push(end - *(uint64_t*)pack.buffer->data());
+						uint64_t start;
+						pack.buffer->read(start);
+						st.pingQueue.push(end - start);
 
 						{
 							std::unique_lock<std::mutex> lock(st.mtx);

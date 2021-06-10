@@ -1,5 +1,7 @@
 #include "managedSocket.h"
 
+#include <iostream>
+
 namespace EHSN {
 	namespace net {
 
@@ -19,9 +21,9 @@ namespace EHSN {
 
 			setRecvCallback(
 				SPT_KEEP_ALIVE_REQUEST,
-				[](Packet pack, bool success, void* pParam)
+				[](Packet pack, uint64_t nBytesReceived, void* pParam)
 				{
-					if (!success)
+					if (nBytesReceived < pack.header.packetSize)
 						return;
 
 					auto& manSock = *(ManagedSocket*)pParam;
@@ -212,7 +214,7 @@ namespace EHSN {
 				m_recvCallbacks.erase(pType);
 		}
 
-		bool ManagedSocket::callSentCallback(const Packet& pack, bool success)
+		bool ManagedSocket::callSentCallback(const Packet& pack, uint64_t nBytesSent)
 		{
 			setCurrentPacketBeingSent(m_currPacketIDBeingSent + 1);
 
@@ -222,11 +224,11 @@ namespace EHSN {
 			if (iterator == m_sentCallbacks.end())
 				return false;
 
-			m_callbackPool.pushJob(std::bind(iterator->second.callback, pack.header.packetID, success, iterator->second.pParam));
+			m_callbackPool.pushJob(std::bind(iterator->second.callback, pack.header.packetID, nBytesSent, iterator->second.pParam));
 			return true;
 		}
 
-		bool ManagedSocket::callRecvCallback(Packet& pack, bool success)
+		bool ManagedSocket::callRecvCallback(Packet& pack, uint64_t nBytesReceived)
 		{
 			std::unique_lock<std::mutex> lock(m_mtxRecvCallbacks);
 
@@ -234,7 +236,7 @@ namespace EHSN {
 			if (iterator == m_recvCallbacks.end())
 				return false;
 
-			m_callbackPool.pushJob(std::bind(iterator->second.callback, pack, success, iterator->second.pParam));
+			m_callbackPool.pushJob(std::bind(iterator->second.callback, pack, nBytesReceived, iterator->second.pParam));
 			return true;
 		}
 
@@ -242,42 +244,44 @@ namespace EHSN {
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
-			if (m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false) < sizeof(PacketHeader))
+			uint64_t nWritten = 0;
+			if ((nWritten = m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false)) < sizeof(PacketHeader))
 			{
-				callSentCallback(packet, false);
+				callSentCallback(packet, nWritten);
 				return;
 			}
 
 			if (packet.buffer)
 			{
-				if (m_sock->writeSecure(packet.buffer) < packet.buffer->size())
+				if ((nWritten = m_sock->writeSecure(packet.buffer)) < packet.buffer->size())
 				{
-					callSentCallback(packet, false);
+					callSentCallback(packet, nWritten);
 					return;
 				}
 			}
-			callSentCallback(packet, true);
+			callSentCallback(packet, nWritten);
 		}
 
 		void ManagedSocket::sendJobNoEncrypt(Packet packet)
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
-			if (m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false) < sizeof(PacketHeader))
+			uint64_t nWritten = 0;
+			if ((nWritten = m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false)) < sizeof(PacketHeader))
 			{
-				callSentCallback(packet, false);
+				callSentCallback(packet, nWritten);
 				return;
 			}
 
 			if (packet.buffer)
 			{
-				if (m_sock->writeRaw(packet.buffer->data(), packet.buffer->size()) < packet.buffer->size())
+				if ((nWritten = m_sock->writeRaw(packet.buffer->data(), packet.buffer->size())) < packet.buffer->size())
 				{
-					callSentCallback(packet, false);
+					callSentCallback(packet, nWritten);
 					return;
 				}
 			}
-			callSentCallback(packet, true);
+			callSentCallback(packet, nWritten);
 		}
 
 		void ManagedSocket::makeSendableJob(Packet packet)
@@ -309,18 +313,19 @@ namespace EHSN {
 			if (m_sock->readSecure(&pack.header, sizeof(PacketHeader)) < sizeof(PacketHeader))
 				goto NextIteration;
 
+			uint64_t nRead = 0;
 			if (pack.header.packetSize > 0)
 			{
 				pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
 
-				if (m_sock->readSecure(pack.buffer) < pack.buffer->size())
+				if ((nRead = m_sock->readSecure(pack.buffer)) < pack.buffer->size())
 				{
-					callRecvCallback(pack, false);
+					callRecvCallback(pack, nRead);
 					goto NextIteration;
 				}
 			}
 
-			if (!callRecvCallback(pack, true))
+			if (!callRecvCallback(pack, nRead))
 			{
 				{
 					std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
@@ -356,19 +361,16 @@ namespace EHSN {
 			if (m_sock->readSecure(&pack.header, sizeof(pack.header)) < sizeof(pack.header))
 				goto NextIteration;
 
+			uint64_t nRead = 0;
 			if (pack.header.packetSize > 0)
 			{
 				pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
 
 				uint64_t paddedSize = crypto::aes::paddedSize(pack.buffer->size());
-				if (m_sock->readRaw(pack.buffer->data(), paddedSize) < paddedSize)
-				{
-					callRecvCallback(pack, false);
-					goto NextIteration;
-				}
+				nRead = m_sock->readRaw(pack.buffer->data(), paddedSize);
 			}
 
-			m_pCryptPool->pushJob(std::bind(&ManagedSocket::makePullableJob, this, pack));
+			m_pCryptPool->pushJob(std::bind(&ManagedSocket::makePullableJob, this, pack, nRead));
 
 		NextIteration:
 			if (m_sock->isConnected())
@@ -376,7 +378,7 @@ namespace EHSN {
 			m_recvNotify.notify_all();
 		}
 
-		void ManagedSocket::makePullableJob(Packet packet)
+		void ManagedSocket::makePullableJob(Packet packet, uint64_t nRead)
 		{
 			if (packet.buffer)
 			{
@@ -391,7 +393,7 @@ namespace EHSN {
 				);
 			}
 
-			if (!callRecvCallback(packet, true))
+			if (!callRecvCallback(packet, nRead))
 			{
 				{
 					std::unique_lock<std::mutex> lock(m_mtxRecvQueue);
