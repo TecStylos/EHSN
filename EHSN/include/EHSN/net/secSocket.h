@@ -39,7 +39,7 @@ namespace EHSN {
 			void reset() { m_nRead = 0; m_nWritten = 0; }
 			void addReadOp(uint64_t size) { m_nRead += size; }
 			void addWriteOp(uint64_t size) { m_nWritten += size; }
-			void addWriteOp(uint64_t size, uint64_t tStart, uint64_t tEnd) { addWriteOp(size); m_writeSpeed.push(SpeedPoint(float(size) / ((tEnd - tStart) / 1000.0f / 1000.0f / 1000.0f), tStart)); }
+			void addWriteSpeed(uint64_t size, uint64_t tStart, uint64_t tEnd) { m_writeSpeed.push(SpeedPoint(float(size) / ((tEnd - tStart) / 1000.0f / 1000.0f / 1000.0f), tStart)); }
 			uint64_t nRead() const { return m_nRead; };
 			uint64_t nWritten() const { return m_nWritten; };
 			float avgWriteSpeed() const { return avgSpeed(m_writeSpeed); }

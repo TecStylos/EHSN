@@ -96,27 +96,32 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 
 	while (sock->isConnected())
 	{
-		std::this_thread::sleep_for(std::chrono::seconds(10));
-
-		if (sentAliveRequest)
-		{
-			sentAliveRequest = false;
-			if (queue.nPullable(EHSN::net::SPT_KEEP_ALIVE_REPLY))
-			{
-				queue.pull(EHSN::net::SPT_KEEP_ALIVE_REPLY);
-			}
-			else
-				queue.disconnect();
-			continue;
-		}
+		std::this_thread::sleep_for(std::chrono::seconds(15));
 
 		uint64_t nWrittenNew = sock->getDataMetrics().nWritten();
 		uint64_t nReadNew = sock->getDataMetrics().nRead();
 
 		if (nWrittenNew == nWrittenLast && nReadNew == nReadLast)
 		{
+			if (sentAliveRequest)
+			{
+				sentAliveRequest = false;
+				if (queue.nPullable(EHSN::net::SPT_KEEP_ALIVE_REPLY))
+				{
+					queue.pull(EHSN::net::SPT_KEEP_ALIVE_REPLY);
+				}
+				else
+					queue.disconnect();
+				continue;
+			}
+
 			queue.push(EHSN::net::SPT_KEEP_ALIVE_REQUEST, EHSN::net::FLAG_PH_NONE, nullptr);
 			sentAliveRequest = true;
+		}
+
+		if (queue.nPullable(EHSN::net::SPT_KEEP_ALIVE_REPLY))
+		{
+			queue.pull(EHSN::net::SPT_KEEP_ALIVE_REPLY);
 		}
 
 		nWrittenLast = nWrittenNew;

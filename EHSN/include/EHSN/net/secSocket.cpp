@@ -126,14 +126,27 @@ namespace EHSN {
 
 			uint64_t tStart = CURR_TIME_NS();
 
-			uint64_t nWritten = asio::write(m_sock, asio::buffer(buffer, nBytes), ec);
+			double secPerChunk = 1.0f;
+			uint64_t chunkSize = std::max(16ULL, uint64_t(secPerChunk * m_dataMetrics.avgWriteSpeed()));
+
+			uint64_t nWritten = 0;
+			while (nWritten < nBytes && !ec)
+			{
+				uint64_t currWritten = asio::write(
+					m_sock,
+					asio::buffer(
+						(const char*)buffer + nWritten,
+						std::min(chunkSize, nBytes - nWritten)),
+					ec
+				);
+				nWritten += currWritten;
+				m_dataMetrics.addWriteOp(currWritten);
+			}
 
 			uint64_t tStop = CURR_TIME_NS();
 
 			if (measureTime)
-				m_dataMetrics.addWriteOp(nWritten, tStart, tStop);
-			else
-				m_dataMetrics.addWriteOp(nWritten);
+				m_dataMetrics.addWriteSpeed(nWritten, tStart, tStop);
 
 			if (ec)
 				setConnected(false);

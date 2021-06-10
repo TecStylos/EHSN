@@ -12,7 +12,7 @@ namespace EHSN {
 			: m_buffer(size)
 		{}
 	public:
-		void push(T& obj) { m_buffer[increaseOffset()] = obj; }
+		void push(const T& obj) { m_buffer[increaseOffset()] = obj; }
 		T& get(uint64_t index) { return m_buffer[virtualToRealIndex(index)]; }
 		const T& get(uint64_t index) const { return m_buffer[virtualToRealIndex(index)]; }
 		T& operator[](uint64_t index) { return get(index); }

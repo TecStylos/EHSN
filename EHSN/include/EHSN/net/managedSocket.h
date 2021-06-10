@@ -259,11 +259,11 @@ namespace EHSN {
 			std::mutex m_mtxRecvQueue;
 			std::map<PacketType, std::queue<Packet>> m_recvQueue;
 
-			ThreadPool m_sendPool;
-			ThreadPool m_recvPool;
-			Ref<ThreadPool> m_pCryptPool;
-			Ref<ThreadPool> m_pCryptThreadPool;
-			ThreadPool m_callbackPool;
+			Ref<ThreadPool> m_sendPool;
+			Ref<ThreadPool> m_recvPool;
+			Ref<ThreadPool> m_cryptPool;
+			Ref<ThreadPool> m_cryptThreadPool;
+			Ref<ThreadPool> m_callbackPool;
 
 			std::mutex m_mtxSentCallbacks;
 			std::mutex m_mtxRecvCallbacks;
