@@ -348,7 +348,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 				queue.setRecvCallback(EHSN::net::SPT_PING_REPLY, nullptr, nullptr);
 
 				std::cout << "   Number of collected pings: " << nPings << std::endl;
-				std::cout << "   Average ping: " << (pingSum / nPings) << " ms" << std::endl;
+				std::cout << "   Average ping: " << (pingSum / nPings / 1000 / 1000) << " ms" << std::endl;
 			}
 			else
 			{
