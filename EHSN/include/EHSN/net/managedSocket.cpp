@@ -36,6 +36,38 @@ namespace EHSN {
 				this
 					);
 
+			setRecvCallback(
+				SPT_REMOTE_WRITE_SPEED_REQUEST,
+				[](Packet pack, uint64_t nBytesReceived, void* pParam)
+				{
+					if (nBytesReceived < pack.header.packetSize)
+						return;
+
+					auto& manSock = *(ManagedSocket*)pParam;
+					auto buff = std::make_shared<PacketBuffer>(sizeof(float));
+					buff->write(manSock.getSock()->getDataMetrics().avgWriteSpeed());
+					manSock.push(SPT_REMOTE_WRITE_SPEED_REPLY, FLAG_PH_NONE, buff);
+				},
+				this
+					);
+
+			setRecvCallback(
+				SPT_REMOTE_WRITE_SPEED_REPLY,
+				[](Packet pack, uint64_t nBytesReceived, void* pParam)
+				{
+					if (nBytesReceived < pack.header.packetSize)
+						return;
+					if (pack.header.packetSize != sizeof(float))
+						return;
+
+					auto& manSock = *(ManagedSocket*)pParam;
+					float writeSpeed;
+					pack.buffer->read(writeSpeed);
+					manSock.setRemoteWriteSpeed(writeSpeed);
+				},
+				this
+					);
+
 			if (m_sock->isConnected())
 				pushRecvJob();
 		}
