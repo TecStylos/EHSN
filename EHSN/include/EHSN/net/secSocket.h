@@ -44,6 +44,8 @@ namespace EHSN {
 			uint64_t nWritten() const { return m_nWritten; };
 			float avgWriteSpeed() const { return avgSpeed(m_writeSpeed); }
 			float lastWriteSpeed() const { return m_writeSpeed[0].bytesPerSec; }
+			void setAvgReadSpeed(float speed) { m_avgReadSpeed = speed; }
+			float avgReadSpeed() const { return m_avgReadSpeed; }
 		private:
 			static float avgSpeed(const CircularBuffer<SpeedPoint>& buff)
 			{
@@ -56,6 +58,7 @@ namespace EHSN {
 			uint64_t m_nRead = 0;
 			uint64_t m_nWritten = 0;
 			CircularBuffer<SpeedPoint> m_writeSpeed;
+			float m_avgReadSpeed = 128.0f;
 		};
 
 		class SecSocket
@@ -164,6 +167,12 @@ namespace EHSN {
 			* Reset the data metrics.
 			*/
 			void resetDataMetrics();
+			/*
+			* Set the average read speed of the underlying socket.
+			* 
+			* @param speed The average read speed of the socket.
+			*/
+			void setAvgReadSpeed(float speed);
 		public:
 			/*
 			* Read raw data from the socket.

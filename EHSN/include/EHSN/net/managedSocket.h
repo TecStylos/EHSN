@@ -29,19 +29,16 @@ namespace EHSN {
 			FLAG_PH_UNUSED_7 = 0b10000000,
 		};
 
-		struct PacketHeader
+		struct PacketHeader // sizeof(PacketHeader) must be a multiple of AES_BLOCK_SIZE!
 		{
 			PacketType packetType = 0; /* Must be set prior to push. */
 			PacketFlags flags = FLAG_PH_NONE; /* Must be set prior to push. */
 			uint8_t reserved = 0;
 			PacketID packetID = 0;
 			uint64_t packetSize = 0;
+			float avgWriteSpeed = 1.0f;
+			char padding[12];
 		};
-
-		constexpr int PacketHeaderSize = sizeof(PacketHeader);
-		#if PacketHeaderSize % 16 != 0
-		#error "sizeof(PacketHeaderSize) must be a multiple of 16!"
-		#endif
 
 		bool operator<(const PacketHeader& left, const PacketHeader& right);
 
@@ -59,8 +56,6 @@ namespace EHSN {
 			SPT_CHANGE_AES_KEY, // Currently unused
 			SPT_KEEP_ALIVE_REQUEST, // Can be sent to tell the remote side that the connection should be kept alive. This Type has a built-in recvCallback!
 			SPT_KEEP_ALIVE_REPLY, // Sent after a SPT_KEEP_ALIVE_REQUEST has been received (default behavior)
-			SPT_REMOTE_WRITE_SPEED_REQUEST, // Can be sent to get the write speed of the remote connection.
-			SPT_REMOTE_WRITE_SPEED_REPLY, // Sent after a SPT_REMOVE_WRITE_SPEED_REPLY has been sent (default behavior)
 			SPT_FIRST_FREE_PACKET_TYPE // Can be used to determine the associated value of the first user-defined packet type. All previous/smaller values are reserved.
 		};
 
@@ -193,13 +188,6 @@ namespace EHSN {
 			* @param pParam Pointer to user defined data. This pointer is passed to cb.
 			*/
 			void setRecvCallback(PacketType pType, PacketRecvCallback cb, void* pParam);
-
-			/*
-			* Set the remote write speed.
-			* 
-			* @param speed The speed of write operations on the remote side.
-			*/
-			void setRemoteWriteSpeed(float speed);
 		private:
 			/*
 			* Call the corresponding callback to the packet type.
@@ -283,6 +271,7 @@ namespace EHSN {
 			PacketID m_currPacketIDBeingSent = 0;
 			PacketID m_nextPacketID = 1;
 			bool m_paused = true;
+			std::atomic<float> m_remoteWriteSpeed;
 		private:
 			Ref<SecSocket> m_sock;
 		};

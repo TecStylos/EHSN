@@ -11,7 +11,7 @@ namespace EHSN {
 		}
 
 		ManagedSocket::ManagedSocket(Ref<SecSocket> sock, uint32_t nThreads)
-			: m_sock(sock)
+			: m_sock(sock), m_remoteWriteSpeed(128.0f)
 		{
 			m_sendPool = std::make_shared<ThreadPool>(1);
 			m_recvPool = std::make_shared<ThreadPool>(1);
@@ -32,38 +32,6 @@ namespace EHSN {
 
 					auto& manSock = *(ManagedSocket*)pParam;
 					manSock.push(SPT_KEEP_ALIVE_REPLY, FLAG_PH_NONE, nullptr);
-				},
-				this
-					);
-
-			setRecvCallback(
-				SPT_REMOTE_WRITE_SPEED_REQUEST,
-				[](Packet pack, uint64_t nBytesReceived, void* pParam)
-				{
-					if (nBytesReceived < pack.header.packetSize)
-						return;
-
-					auto& manSock = *(ManagedSocket*)pParam;
-					auto buff = std::make_shared<PacketBuffer>(sizeof(float));
-					buff->write(manSock.getSock()->getDataMetrics().avgWriteSpeed());
-					manSock.push(SPT_REMOTE_WRITE_SPEED_REPLY, FLAG_PH_NONE, buff);
-				},
-				this
-					);
-
-			setRecvCallback(
-				SPT_REMOTE_WRITE_SPEED_REPLY,
-				[](Packet pack, uint64_t nBytesReceived, void* pParam)
-				{
-					if (nBytesReceived < pack.header.packetSize)
-						return;
-					if (pack.header.packetSize != sizeof(float))
-						return;
-
-					auto& manSock = *(ManagedSocket*)pParam;
-					float writeSpeed;
-					pack.buffer->read(writeSpeed);
-					manSock.setRemoteWriteSpeed(writeSpeed);
 				},
 				this
 					);
@@ -286,6 +254,8 @@ namespace EHSN {
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
+			packet.header.avgWriteSpeed = m_sock->getDataMetrics().avgWriteSpeed();
+
 			uint64_t nWritten = 0;
 			if ((nWritten = m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false)) < sizeof(PacketHeader))
 			{
@@ -307,6 +277,8 @@ namespace EHSN {
 		void ManagedSocket::sendJobNoEncrypt(Packet packet)
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
+
+			packet.header.avgWriteSpeed = m_sock->getDataMetrics().avgWriteSpeed();
 
 			uint64_t nWritten = 0;
 			if ((nWritten = m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false)) < sizeof(PacketHeader))
@@ -357,6 +329,8 @@ namespace EHSN {
 			if (m_sock->readSecure(&pack.header, sizeof(PacketHeader)) < sizeof(PacketHeader))
 				goto NextIterationRecvDecrypt;
 
+			m_sock->setAvgReadSpeed(pack.header.avgWriteSpeed);
+
 			if (pack.header.packetSize > 0)
 			{
 				pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
@@ -404,6 +378,8 @@ namespace EHSN {
 
 			if (m_sock->readSecure(&pack.header, sizeof(pack.header)) < sizeof(pack.header))
 				goto NextIterationRecvNoDecrypt;
+
+			m_sock->setAvgReadSpeed(pack.header.avgWriteSpeed);
 
 			if (pack.header.packetSize > 0)
 			{

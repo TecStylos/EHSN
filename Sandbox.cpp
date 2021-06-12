@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#define CLIENT_THREADS_PER_SOCKET 8
+#define CLIENT_THREADS_PER_SOCKET 4
 #define SERVER_THREADS_PER_SOCKET 4
 
 std::vector<std::string> splitCommand(const std::string& command) {
@@ -134,7 +134,7 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 
 int main(int argc, const char* argv[], const char* env[]) {
 
-	bool runServer = true;
+	bool runServer = false;
 	for (int i = 0; i < argc; ++i)
 	{
 		std::string arg = argv[i];

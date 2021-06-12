@@ -106,11 +106,16 @@ namespace EHSN {
 			m_dataMetrics.reset();
 		}
 
+		void SecSocket::setAvgReadSpeed(float speed)
+		{
+			m_dataMetrics.setAvgReadSpeed(speed);
+		}
+
 		uint64_t SecSocket::readRaw(void* buffer, uint64_t nBytes)
 		{
 			asio::error_code ec;
 
-			uint64_t nRead = asio::read(m_sock, asio::buffer(buffer, nBytes), ec);
+			uint64_t nRead = asio::read(m_sock, asio::buffer(buffer, nBytes), ec); // TODO: Read single chunks instead of the whole buffer in one call (compare writeRaw)
 
 			if (ec)
 				setConnected(false);
