@@ -122,6 +122,7 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 		if (queue.nPullable(EHSN::net::SPT_KEEP_ALIVE_REPLY))
 		{
 			queue.pull(EHSN::net::SPT_KEEP_ALIVE_REPLY);
+			sentAliveRequest = false;
 		}
 
 		nWrittenLast = nWrittenNew;
@@ -134,7 +135,7 @@ void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
 
 int main(int argc, const char* argv[], const char* env[]) {
 
-	bool runServer = false;
+	bool runServer = true;
 	for (int i = 0; i < argc; ++i)
 	{
 		std::string arg = argv[i];

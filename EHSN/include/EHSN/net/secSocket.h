@@ -17,6 +17,8 @@ constexpr uint64_t operator"" _KB(uint64_t val) { return val * 1000_B; }
 constexpr uint64_t operator"" _MB(uint64_t val) { return val * 1000_KB; }
 constexpr uint64_t operator"" _GB(uint64_t val) { return val * 1000_MB; }
 
+#include <iostream>
+
 namespace EHSN {
 	namespace net {
 
@@ -37,8 +39,8 @@ namespace EHSN {
 			{}
 		public:
 			void reset() { m_nRead = 0; m_nWritten = 0; }
-			void addReadOp(uint64_t size) { m_nRead += size; }
-			void addWriteOp(uint64_t size) { m_nWritten += size; }
+			void addReadOp(uint64_t size) { m_nRead += size; ++m_nReadOps; std::cout << "R-Op   #Ops: " << m_nReadOps << " -- #Bytes: " << size << std::endl; }
+			void addWriteOp(uint64_t size) { m_nWritten += size; ++m_nWriteOps; std::cout << "W-Op   #Ops: " << m_nWriteOps << " -- #Bytes: " << size << std::endl; }
 			void addWriteSpeed(uint64_t size, uint64_t tStart, uint64_t tEnd) { m_writeSpeed.push(SpeedPoint(float(size) / ((tEnd - tStart) / 1000.0f / 1000.0f / 1000.0f), tStart)); }
 			uint64_t nRead() const { return m_nRead; };
 			uint64_t nWritten() const { return m_nWritten; };
@@ -56,7 +58,9 @@ namespace EHSN {
 			}
 		private:
 			uint64_t m_nRead = 0;
+			uint64_t m_nReadOps = 0;
 			uint64_t m_nWritten = 0;
+			uint64_t m_nWriteOps = 0;
 			CircularBuffer<SpeedPoint> m_writeSpeed;
 			float m_avgReadSpeed = 128.0f;
 		};

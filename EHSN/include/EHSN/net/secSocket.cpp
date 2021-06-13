@@ -115,12 +115,27 @@ namespace EHSN {
 		{
 			asio::error_code ec;
 
-			uint64_t nRead = asio::read(m_sock, asio::buffer(buffer, nBytes), ec); // TODO: Read single chunks instead of the whole buffer in one call (compare writeRaw)
+			constexpr uint64_t minToRead = 1_MB;
+
+			uint64_t nRead = 0;
+			while (nRead < nBytes && !ec)
+			{
+				uint64_t nReadable = m_sock.available();
+				uint64_t nRemaining = nBytes - nRead;
+
+				uint64_t currRead = m_sock.read_some(
+					asio::buffer(
+						(char*)buffer + nRead,
+						std::min(std::max(nReadable, minToRead), nRemaining)
+					),
+					ec
+				);
+				nRead += currRead;
+				m_dataMetrics.addReadOp(currRead);
+			}
 
 			if (ec)
 				setConnected(false);
-
-			m_dataMetrics.addReadOp(nRead);
 
 			return nRead;
 		}
@@ -131,21 +146,19 @@ namespace EHSN {
 
 			uint64_t tStart = CURR_TIME_NS();
 
-			double secPerChunk = 1.0f;
-			uint64_t chunkSize = std::max(16ULL, uint64_t(secPerChunk * m_dataMetrics.avgWriteSpeed()));
-
 			uint64_t nWritten = 0;
 			while (nWritten < nBytes && !ec)
 			{
-				uint64_t currWritten = asio::write(
-					m_sock,
+				uint64_t currWritten = m_sock.write_some(
 					asio::buffer(
 						(const char*)buffer + nWritten,
-						std::min(chunkSize, nBytes - nWritten)),
+						nBytes - nWritten
+					),
 					ec
 				);
 				nWritten += currWritten;
 				m_dataMetrics.addWriteOp(currWritten);
+				
 			}
 
 			uint64_t tStop = CURR_TIME_NS();
