@@ -39,8 +39,8 @@ namespace EHSN {
 			{}
 		public:
 			void reset() { m_nRead = 0; m_nWritten = 0; }
-			void addReadOp(uint64_t size) { m_nRead += size; ++m_nReadOps; std::cout << "R-Op   #Ops: " << m_nReadOps << " -- #Bytes: " << size << std::endl; }
-			void addWriteOp(uint64_t size) { m_nWritten += size; ++m_nWriteOps; std::cout << "W-Op   #Ops: " << m_nWriteOps << " -- #Bytes: " << size << std::endl; }
+			void addReadOp(uint64_t size) { m_nRead += size; ++m_nReadOps; }
+			void addWriteOp(uint64_t size) { m_nWritten += size; ++m_nWriteOps; }
 			void addWriteSpeed(uint64_t size, uint64_t tStart, uint64_t tEnd) { m_writeSpeed.push(SpeedPoint(float(size) / ((tEnd - tStart) / 1000.0f / 1000.0f / 1000.0f), tStart)); }
 			uint64_t nRead() const { return m_nRead; };
 			uint64_t nWritten() const { return m_nWritten; };

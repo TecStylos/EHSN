@@ -118,10 +118,10 @@ namespace EHSN {
 			constexpr uint64_t minToRead = 1_MB;
 
 			uint64_t nRead = 0;
+			uint64_t nRemaining = nBytes;
 			while (nRead < nBytes && !ec)
 			{
 				uint64_t nReadable = m_sock.available();
-				uint64_t nRemaining = nBytes - nRead;
 
 				uint64_t currRead = m_sock.read_some(
 					asio::buffer(
@@ -131,6 +131,7 @@ namespace EHSN {
 					ec
 				);
 				nRead += currRead;
+				nRemaining -= currRead;
 				m_dataMetrics.addReadOp(currRead);
 			}
 
