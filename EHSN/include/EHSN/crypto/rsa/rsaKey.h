@@ -12,6 +12,8 @@ namespace EHSN {
 
 			class Key;
 
+			typedef Ref<Key> KeyRef;
+
 			enum class KeyType
 			{
 				None,
@@ -21,8 +23,8 @@ namespace EHSN {
 
 			struct KeyPair
 			{
-				Ref<Key> keyPublic;
-				Ref<Key> keyPrivate;
+				KeyRef keyPublic;
+				KeyRef keyPrivate;
 			};
 
 			class Key
@@ -42,11 +44,11 @@ namespace EHSN {
 				const int m_padding = RSA_PKCS1_OAEP_PADDING;
 			public:
 				static KeyPair generate(int nBits);
-				static Ref<Key> loadFromFile(const std::string& filepath, KeyType kt);
-				static Ref<Key> loadFromString(const std::string& keyStr, KeyType kt);
+				static KeyRef loadFromFile(const std::string& filepath, KeyType kt);
+				static KeyRef loadFromString(const std::string& keyStr, KeyType kt);
 			private:
-				friend int encrypt(const void*, int, void*, const Ref<Key>);
-				friend int decrypt(const void*, int, void*, const Ref<Key>);
+				friend int encrypt(const void*, int, void*, const KeyRef);
+				friend int decrypt(const void*, int, void*, const KeyRef);
 			};
 
 		} // namespace rsa

@@ -29,7 +29,7 @@ namespace EHSN {
 				return AES_BLOCK_SIZE;
 			}
 
-			Ref<Key> Key::create(const std::vector<char>& key)
+			KeyRef Key::create(const std::vector<char>& key)
 			{
 				assert(key.size() == 32);
 				return std::make_shared<Key>(key.data(), 32);

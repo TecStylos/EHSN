@@ -45,7 +45,7 @@ namespace EHSN {
 		struct Packet
 		{
 			PacketHeader header;
-			Ref<PacketBuffer> buffer;
+			PacketBufferRef buffer;
 		};
 
 		enum STANDARD_PACKET_TYPES : PacketType
@@ -91,7 +91,7 @@ namespace EHSN {
 			* @param sock Socket used for read/write operations.
 			* @param nThreads If set to true, packets will be en-/decrypted in a separate thread. For values greater than 0 the passed socket should be created with 0 threads.
 			*/
-			ManagedSocket(Ref<SecSocket> sock, uint32_t nThreads = 0);
+			ManagedSocket(SecSocketRef sock, uint32_t nThreads = 0);
 			/*
 			* Destructor of PacketQueue.
 			* 
@@ -104,7 +104,7 @@ namespace EHSN {
 			*
 			* @returns The underlying socket.
 			*/
-			Ref<SecSocket> getSock();
+			SecSocketRef getSock();
 			/*
 			* Connect to a host.
 			*
@@ -128,7 +128,7 @@ namespace EHSN {
 			* @param buffer Packet buffer holding the data to be sent.
 			* @returns The packed ID identifying the pushed packet.
 			*/
-			PacketID push(PacketType packetType, PacketFlags flags, Ref<PacketBuffer> buffer);
+			PacketID push(PacketType packetType, PacketFlags flags, PacketBufferRef buffer);
 			/*
 			* Push a packet onto the write-queue.
 			* 
@@ -256,11 +256,11 @@ namespace EHSN {
 			std::mutex m_mtxRecvQueue;
 			std::map<PacketType, std::queue<Packet>> m_recvQueue;
 
-			Ref<ThreadPool> m_sendPool;
-			Ref<ThreadPool> m_recvPool;
-			Ref<ThreadPool> m_cryptPool;
-			Ref<ThreadPool> m_cryptThreadPool;
-			Ref<ThreadPool> m_callbackPool;
+			ThreadPoolRef m_sendPool;
+			ThreadPoolRef m_recvPool;
+			ThreadPoolRef m_cryptPool;
+			ThreadPoolRef m_cryptThreadPool;
+			ThreadPoolRef m_callbackPool;
 
 			std::mutex m_mtxSentCallbacks;
 			std::mutex m_mtxRecvCallbacks;
@@ -273,7 +273,7 @@ namespace EHSN {
 			bool m_paused = true;
 			std::atomic<float> m_remoteWriteSpeed;
 		private:
-			Ref<SecSocket> m_sock;
+			SecSocketRef m_sock;
 		};
 
 	} // namespace net

@@ -11,8 +11,8 @@ namespace EHSN {
 		constexpr uint32_t AES_KEY_SIZE = 32;
 		constexpr uint32_t AES_KEY_ECHO_SIZE = 64;
 
-		typedef void(*SessionFunc)(Ref<SecSocket> sock, void* pParam);
-		typedef void(*ExceptionCallback)(std::exception& e, Ref<SecSocket>, void* pParam);
+		typedef void(*SessionFunc)(SecSocketRef sock, void* pParam);
+		typedef void(*ExceptionCallback)(std::exception& e, SecSocketRef, void* pParam);
 
 		class SecAcceptor
 		{
@@ -53,7 +53,7 @@ namespace EHSN {
 			* @param pParam User defined data that can be used by sFunc and ecb. May be NULL.
 			* @param ecb User defined exception callback for non-handled std::exception's in sFunc. May be NULL.
 			*/
-			static void internalSessionFunc(Ref<SecSocket> sock, const crypto::rsa::KeyPair& keyPair, SessionFunc sFunc, void* pParam, ExceptionCallback ecb);
+			static void internalSessionFunc(SecSocketRef sock, const crypto::rsa::KeyPair& keyPair, SessionFunc sFunc, void* pParam, ExceptionCallback ecb);
 			/*
 			* Establish a secure connection with the client.
 			*
@@ -63,14 +63,14 @@ namespace EHSN {
 			* @param keyPair rsa-keypair used to establish a secure connection.
 			* @returns True when a secure connection could be established. Otherwise false.
 			*/
-			static bool establishSecureConnection(Ref<SecSocket> sock, const crypto::rsa::KeyPair& keyPair);
+			static bool establishSecureConnection(SecSocketRef sock, const crypto::rsa::KeyPair& keyPair);
 			/*
 			* Execute the handshake with the client.
 			*
 			* @param sock Socket of the connection.
 			* @returns True when the handshake was successful. Otherwise false.
 			*/
-			static bool escHandshake(Ref<SecSocket> sock);
+			static bool escHandshake(SecSocketRef sock);
 			/*
 			* Exchange rsa-/aes-keys with the client.
 			*
@@ -78,7 +78,7 @@ namespace EHSN {
 			* @param keyPair rsa-keypair used to establish a secure connection.
 			* @returns True when the keys were exchanged successfully. Otherwise false.
 			*/
-			static bool escKeyExchange(Ref<SecSocket> sock, const crypto::rsa::KeyPair& keyPair);
+			static bool escKeyExchange(SecSocketRef sock, const crypto::rsa::KeyPair& keyPair);
 		private:
 			tcp::acceptor m_acceptor;
 			SessionFunc m_sFunc;

@@ -2,8 +2,6 @@
 
 #include <asio.hpp>
 
-#include "EHSN/Reference.h"
-
 namespace EHSN {
 	namespace net {
 

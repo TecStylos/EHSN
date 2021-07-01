@@ -10,8 +10,8 @@ namespace EHSN {
 			int encrypt(const void* clearData, int nBytes, void* cipherData, const KeyPair& keyPair);
 			int decrypt(const void* cipherData, int nBytes, void* clearData, const KeyPair& keyPair);
 
-			int encrypt(const void* clearData, int nBytes, void* cipherData, const Ref<Key> keyPublic);
-			int decrypt(const void* cipherData, int nBytes, void* clearData, const Ref<Key> keyPrivate);
+			int encrypt(const void* clearData, int nBytes, void* cipherData, const KeyRef keyPublic);
+			int decrypt(const void* cipherData, int nBytes, void* clearData, const KeyRef keyPrivate);
 
 		} // namespace rsa
 	} // namespace crypto

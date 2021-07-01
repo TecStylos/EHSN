@@ -11,7 +11,7 @@ namespace EHSN {
 			m_rsaKeyPair = crypto::rsa::Key::generate(4096);
 		}
 
-		void SecAcceptor::internalSessionFunc(Ref<SecSocket> sock, const crypto::rsa::KeyPair& keyPair, SessionFunc sFunc, void* pParam, ExceptionCallback ecb)
+		void SecAcceptor::internalSessionFunc(SecSocketRef sock, const crypto::rsa::KeyPair& keyPair, SessionFunc sFunc, void* pParam, ExceptionCallback ecb)
 		{
 			try
 			{
@@ -27,7 +27,7 @@ namespace EHSN {
 			}
 		}
 
-		bool SecAcceptor::establishSecureConnection(Ref<SecSocket> sock, const crypto::rsa::KeyPair& keyPair)
+		bool SecAcceptor::establishSecureConnection(SecSocketRef sock, const crypto::rsa::KeyPair& keyPair)
 		{
 			if (!escHandshake(sock))
 				return false;
@@ -38,7 +38,7 @@ namespace EHSN {
 			return true;
 		}
 
-		bool SecAcceptor::escHandshake(Ref<SecSocket> sock)
+		bool SecAcceptor::escHandshake(SecSocketRef sock)
 		{
 			packets::HandshakeInfo hsi;
 			hsi.aesKeySize = AES_KEY_SIZE;
@@ -59,7 +59,7 @@ namespace EHSN {
 			return true;
 		}
 
-		bool SecAcceptor::escKeyExchange(Ref<SecSocket> sock, const crypto::rsa::KeyPair& keyPair)
+		bool SecAcceptor::escKeyExchange(SecSocketRef sock, const crypto::rsa::KeyPair& keyPair)
 		{
 			{ // Send public RSA-Key to client
 				std::string rsaStr = keyPair.keyPublic->toString();

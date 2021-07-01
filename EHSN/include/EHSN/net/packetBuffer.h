@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "../Reference.h"
 
 namespace EHSN {
 	namespace net {
@@ -105,6 +106,8 @@ namespace EHSN {
 			uint64_t m_size = 0;
 			uint64_t m_nReserved = 0;
 		};
+
+		typedef Ref<PacketBuffer> PacketBufferRef;
 
 		template<typename T>
 		inline void PacketBuffer::read(T& obj, uint64_t offset) const

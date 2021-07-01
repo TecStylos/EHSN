@@ -60,7 +60,7 @@ enum CUSTOM_PACKET_TYPES : EHSN::net::PacketType {
 	CPT_RAW_DATA = EHSN::net::SPT_FIRST_FREE_PACKET_TYPE,
 };
 
-void sessionFunc(EHSN::Ref<EHSN::net::SecSocket> sock, void* pParam) {
+void sessionFunc(EHSN::net::SecSocketRef sock, void* pParam) {
 	EHSN::net::ManagedSocket queue(sock, SERVER_THREADS_PER_SOCKET);
 
 	queue.setRecvCallback(
@@ -252,7 +252,7 @@ int main(int argc, const char* argv[], const char* env[]) {
 
 				std::cout << "     Sending packets..." << std::endl;
 
-				std::vector<EHSN::Ref<EHSN::net::PacketBuffer>> buffers;
+				std::vector<EHSN::net::PacketBufferRef> buffers;
 				buffers.resize(nPackets);
 				for (uint64_t i = 0; i < nPackets; ++i)
 				{

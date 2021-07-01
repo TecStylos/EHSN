@@ -10,6 +10,10 @@ namespace EHSN {
 	namespace crypto {
 		namespace aes {
 
+			class Key;
+
+			typedef Ref<Key> KeyRef;
+
 			class Key
 			{
 			public:
@@ -33,10 +37,10 @@ namespace EHSN {
 				* @param key Data to base the aes-key on.
 				* @returns Newly create aes-key.
 				*/
-				static Ref<Key> create(const std::vector<char>& key);
+				static KeyRef create(const std::vector<char>& key);
 			private:
-				friend void encryptBlock(const void*, void*, Ref<Key>);
-				friend void decryptBlock(const void*, void*, Ref<Key>);
+				friend void encryptBlock(const void*, void*, KeyRef);
+				friend void decryptBlock(const void*, void*, KeyRef);
 			};
 
 		} // namespace aes

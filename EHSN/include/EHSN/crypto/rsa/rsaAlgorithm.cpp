@@ -16,7 +16,7 @@ namespace EHSN {
 				return decrypt(cipherData, nBytes, clearData, keyPair.keyPrivate);
 			}
 
-			int encrypt(const void* clearData, int nBytes, void* cipherData, const Ref<Key> keyPublic)
+			int encrypt(const void* clearData, int nBytes, void* cipherData, const KeyRef keyPublic)
 			{
 				int maxSize = keyPublic->getMaxPlainBuffSize();
 
@@ -32,7 +32,7 @@ namespace EHSN {
 				);
 			}
 
-			int decrypt(const void* cipherData, int nBytes, void* clearData, const Ref<Key> keyPrivate)
+			int decrypt(const void* cipherData, int nBytes, void* clearData, const KeyRef keyPrivate)
 			{
 				int maxSize = keyPrivate->getMaxCipherBuffSize();
 

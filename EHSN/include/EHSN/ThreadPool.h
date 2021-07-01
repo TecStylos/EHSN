@@ -73,4 +73,6 @@ namespace EHSN {
 		std::atomic_uint64_t m_nJobsDone;
 		std::atomic_uint64_t m_nextJobNum;
 	};
+
+	typedef Ref<ThreadPool> ThreadPoolRef;
 }

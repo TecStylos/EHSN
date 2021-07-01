@@ -10,7 +10,7 @@ namespace EHSN {
 			return left.packetID < right.packetID;
 		}
 
-		ManagedSocket::ManagedSocket(Ref<SecSocket> sock, uint32_t nThreads)
+		ManagedSocket::ManagedSocket(SecSocketRef sock, uint32_t nThreads)
 			: m_sock(sock), m_remoteWriteSpeed(128.0f)
 		{
 			m_sendPool = std::make_shared<ThreadPool>(1);
@@ -51,7 +51,7 @@ namespace EHSN {
 			m_callbackPool.reset();
 		}
 
-		Ref<SecSocket> ManagedSocket::getSock()
+		SecSocketRef ManagedSocket::getSock()
 		{
 			return m_sock;
 		}
@@ -73,7 +73,7 @@ namespace EHSN {
 			m_recvPool->clear();
 		}
 
-		PacketID ManagedSocket::push(PacketType packetType, PacketFlags flags, Ref<PacketBuffer> buffer)
+		PacketID ManagedSocket::push(PacketType packetType, PacketFlags flags, PacketBufferRef buffer)
 		{
 			Packet pack;
 			pack.header.packetType = packetType;

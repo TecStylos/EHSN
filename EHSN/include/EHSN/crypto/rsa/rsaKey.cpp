@@ -94,7 +94,7 @@ namespace EHSN {
 				return kp;
 			}
 
-			Ref<Key> Key::loadFromFile(const std::string& filepath, KeyType kt)
+			KeyRef Key::loadFromFile(const std::string& filepath, KeyType kt)
 			{
 				std::ifstream file(filepath);
 				if (!file.good())
@@ -110,7 +110,7 @@ namespace EHSN {
 
 				return loadFromString(rsaStr, kt);
 			}
-			Ref<Key> Key::loadFromString(const std::string& keyStr, KeyType kt)
+			KeyRef Key::loadFromString(const std::string& keyStr, KeyType kt)
 			{
 				auto key = std::make_shared<Key>(kt);
 

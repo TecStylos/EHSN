@@ -7,7 +7,7 @@
 namespace EHSN {
 	namespace crypto {
 		namespace aes {
-			uint64_t crypt(const void* from, uint64_t nBytes, void* to, Ref<Key> key, bool pad, CryptBlockFunc func)
+			uint64_t crypt(const void* from, uint64_t nBytes, void* to, KeyRef key, bool pad, CryptBlockFunc func)
 			{
 				assert(pad || nBytes % AES_BLOCK_SIZE == 0);
 				if (pad)
@@ -21,7 +21,7 @@ namespace EHSN {
 				return nBytes;
 			}
 
-			uint64_t cryptThreaded(const void* cipherData, uint64_t nBytes, void* clearData, Ref<Key> key, bool pad, uint64_t nJobs, Ref<ThreadPool> threadPool, CryptBlockFunc func)
+			uint64_t cryptThreaded(const void* cipherData, uint64_t nBytes, void* clearData, KeyRef key, bool pad, uint64_t nJobs, ThreadPoolRef threadPool, CryptBlockFunc func)
 			{
 				assert(pad || nBytes % AES_BLOCK_SIZE == 0);
 				if (pad)

@@ -117,7 +117,7 @@ namespace EHSN {
 			* @param buffer The buffer to write the decrypted data to.
 			* @returns Number of bytes read from the socket.
 			*/
-			uint64_t readSecure(Ref<PacketBuffer> buffer);
+			uint64_t readSecure(PacketBufferRef buffer);
 			/*
 			* Read encrypted data from the socket and decrypt it.
 			*
@@ -136,7 +136,7 @@ namespace EHSN {
 			* @param measureTime Measure the time it takes to send the buffer if set to true.
 			* @returns Number of bytes written to the socket.
 			*/
-			uint64_t writeSecure(Ref<PacketBuffer> buffer, bool measureTime = true);
+			uint64_t writeSecure(PacketBufferRef buffer, bool measureTime = true);
 			/*
 			* Encrypt data in-place and write it to the socket.
 			*
@@ -166,7 +166,7 @@ namespace EHSN {
 			* 
 			* @returns Underlying AES-Key.
 			*/
-			const Ref<crypto::aes::Key>& getAESKey() const;
+			const crypto::aes::KeyRef& getAESKey() const;
 			/*
 			* Reset the data metrics.
 			*/
@@ -207,7 +207,7 @@ namespace EHSN {
 			* @param key Key to encrypt the data with.
 			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
 			*/
-			uint64_t autoEncrypt(const void* clearData, uint64_t nBytes, void* cipherData, Ref<crypto::aes::Key> key, bool pad);
+			uint64_t autoEncrypt(const void* clearData, uint64_t nBytes, void* cipherData, crypto::aes::KeyRef key, bool pad);
 			/*
 			* Decrypt nBytes of data.
 			* Automatically chooses the threaded/non-threaded version.
@@ -219,7 +219,7 @@ namespace EHSN {
 			* @param key Key to decrypt the data with.
 			* @param pad If set to true nBytes will be padded to the next multiple of AES_BLOCK_SIZE.
 			*/
-			uint64_t autoDecrypt(const void* cipherData, uint64_t nBytes, void* clearData, Ref<crypto::aes::Key> key, bool pad);
+			uint64_t autoDecrypt(const void* cipherData, uint64_t nBytes, void* clearData, crypto::aes::KeyRef key, bool pad);
 		private:
 			/*
 			* Set the internal connected state.
@@ -263,8 +263,8 @@ namespace EHSN {
 			bool m_isConnected = false;
 			struct CryptData
 			{
-				Ref<crypto::aes::Key> aesKey;
-				Ref<ThreadPool> threadPool;
+				crypto::aes::KeyRef aesKey;
+				ThreadPoolRef threadPool;
 			} m_cryptData;
 		private:
 			DataMetrics m_dataMetrics;
@@ -273,6 +273,8 @@ namespace EHSN {
 		private:
 			friend class SecAcceptor;
 		};
+
+		typedef Ref<SecSocket> SecSocketRef;
 
 		/*
 		* Write a struct/class or basic data type to the socket.

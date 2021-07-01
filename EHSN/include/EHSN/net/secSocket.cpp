@@ -52,7 +52,7 @@ namespace EHSN {
 			return !!m_cryptData.aesKey;
 		}
 
-		uint64_t SecSocket::readSecure(Ref<PacketBuffer> buffer)
+		uint64_t SecSocket::readSecure(PacketBufferRef buffer)
 		{
 			return readSecure(buffer->data(), buffer->size());
 		}
@@ -65,7 +65,7 @@ namespace EHSN {
 			return std::min(nBytes, nRead);
 		}
 
-		uint64_t SecSocket::writeSecure(Ref<PacketBuffer> buffer, bool measureTime)
+		uint64_t SecSocket::writeSecure(PacketBufferRef buffer, bool measureTime)
 		{
 			return writeSecure(buffer->data(), buffer->size(), measureTime);
 		}
@@ -96,7 +96,7 @@ namespace EHSN {
 			return m_dataMetrics;
 		}
 
-		const Ref<crypto::aes::Key>& SecSocket::getAESKey() const
+		const crypto::aes::KeyRef& SecSocket::getAESKey() const
 		{
 			return m_cryptData.aesKey;
 		}
@@ -173,14 +173,14 @@ namespace EHSN {
 			return nWritten;
 		}
 
-		uint64_t SecSocket::autoEncrypt(const void* clearData, uint64_t nBytes, void* cipherData, Ref<crypto::aes::Key> key, bool pad)
+		uint64_t SecSocket::autoEncrypt(const void* clearData, uint64_t nBytes, void* cipherData, crypto::aes::KeyRef key, bool pad)
 		{
 			if (m_cryptData.threadPool)
 				return crypto::aes::encryptThreaded(clearData, nBytes, cipherData, key, pad, m_cryptData.threadPool->size(), m_cryptData.threadPool);
 			return crypto::aes::encrypt(clearData, nBytes, cipherData, key, pad);
 		}
 
-		uint64_t SecSocket::autoDecrypt(const void* cipherData, uint64_t nBytes, void* clearData, Ref<crypto::aes::Key> key, bool pad)
+		uint64_t SecSocket::autoDecrypt(const void* cipherData, uint64_t nBytes, void* clearData, crypto::aes::KeyRef key, bool pad)
 		{
 			if (m_cryptData.threadPool)
 				return crypto::aes::decryptThreaded(cipherData, nBytes, clearData, key, pad, m_cryptData.threadPool->size(), m_cryptData.threadPool);
@@ -235,7 +235,7 @@ namespace EHSN {
 
 		bool SecSocket::escKeyExchange(uint32_t aesKeySize, uint32_t aesKeyEchoSize)
 		{
-			Ref<crypto::rsa::Key> rsaKey;
+			crypto::rsa::KeyRef rsaKey;
 
 			{ // Receive public RSA-Key
 				uint64_t rsaStrLen;
