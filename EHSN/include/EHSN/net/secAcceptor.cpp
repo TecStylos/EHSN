@@ -13,6 +13,12 @@ namespace EHSN {
 
 		void SecAcceptor::internalSessionFunc(SecSocketRef sock, const crypto::rsa::KeyPair& keyPair, SessionFunc sFunc, void* pParam, ExceptionCallback ecb)
 		{
+			auto callEcb = [&ecb, &sock, pParam](std::exception& e)
+			{
+				if (ecb != nullptr)
+					ecb(e, sock, pParam);
+			};
+
 			try
 			{
 				if (!establishSecureConnection(sock, keyPair))
@@ -22,8 +28,12 @@ namespace EHSN {
 			}
 			catch (std::exception& e)
 			{
-				if (ecb != nullptr)
-					ecb(e, sock, pParam);
+				callEcb(e);
+			}
+			catch (...)
+			{
+				std::runtime_error e("Unknown exception thrown in sessionFunc! Catched with (...)!");
+				callEcb(e);
 			}
 		}
 
