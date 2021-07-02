@@ -13,7 +13,7 @@ namespace EHSN {
 
 		void SecAcceptor::internalSessionFunc(SecSocketRef sock, const crypto::rsa::KeyPair& keyPair, SessionFunc sFunc, void* pParam, ExceptionCallback ecb)
 		{
-			auto callEcb = [&ecb, &sock, pParam](std::exception& e)
+			const auto callEcb = [&ecb, &sock, pParam](std::exception& e)
 			{
 				if (ecb != nullptr)
 					ecb(e, sock, pParam);
