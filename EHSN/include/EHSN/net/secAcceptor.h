@@ -39,6 +39,12 @@ namespace EHSN {
 			* @param nCryptThreads Number of threads used for en-/decryption per session/socket.
 			*/
 			void newSession(bool noDelay = false, uint32_t nCryptThreads = 0);
+			/*
+			* Get the port the acceptor is assigned to
+			* 
+			* @returns Port of the acceptor.
+			*/
+			uint16_t getPort() const;
 		private:
 			/*
 			* Run the session.

@@ -116,5 +116,10 @@ namespace EHSN {
 			t.detach();
 		}
 
+		uint16_t SecAcceptor::getPort() const
+		{
+			return m_acceptor.local_endpoint().port();
+		}
+
 	} // namespace net
 } // namespace EHSN
