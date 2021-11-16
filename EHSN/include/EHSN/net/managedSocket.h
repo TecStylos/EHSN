@@ -119,6 +119,15 @@ namespace EHSN {
 			*/
 			void disconnect();
 			/*
+			* Check if the socket is connected.
+			*
+			* The value gets updated after every read/write from/to the underlying socket.
+			* It may not represent the real state of the socket.
+			*
+			* @returns True when the socket is connected. Otherwise false.
+			*/
+			bool isConnected() const;
+			/*
 			* Push a packet onto the write-queue.
 			*
 			* The supplied packet buffer should not be used after calling this function.

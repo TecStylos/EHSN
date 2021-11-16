@@ -73,6 +73,11 @@ namespace EHSN {
 			m_recvPool->clear();
 		}
 
+		bool ManagedSocket::isConnected() const
+		{
+			return m_sock->isConnected();
+		}
+
 		PacketID ManagedSocket::push(PacketType packetType, PacketFlags flags, PacketBufferRef buffer)
 		{
 			Packet pack;
