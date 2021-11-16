@@ -2,4 +2,4 @@
 Encrypted High Speed Networking
 
 ## Requirements
- - OpenSSL (accessable with 'find_package', static linkage)
+ - OpenSSL (accessible via CMake's "find_package", static linkage)
