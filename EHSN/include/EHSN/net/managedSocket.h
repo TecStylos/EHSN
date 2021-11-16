@@ -285,5 +285,7 @@ namespace EHSN {
 			SecSocketRef m_sock;
 		};
 
+		typedef Ref<ManagedSocket> ManagedSocketRef;
+
 	} // namespace net
 } // namespace EHSN
