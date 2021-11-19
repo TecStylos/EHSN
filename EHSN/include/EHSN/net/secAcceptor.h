@@ -25,8 +25,9 @@ namespace EHSN {
 			* @param pParam User defined data passed to sFunc and ecb calls. May be NULL.
 			* @param ecb User defined exception callback for non-handled std::exception's in sFunc. May be NULL.
 			* @param rdg Random data generator used for generating the keys. (Currently unused)
+			* @param rsaKeySize Size of the RSA key to generate.
 			*/
-			SecAcceptor(const std::string& port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb, crypto::RandomDataGenerator rdg = crypto::defaultRDG);
+			SecAcceptor(const std::string& port, SessionFunc sFunc, void* pParam, ExceptionCallback ecb, crypto::RandomDataGenerator rdg = crypto::defaultRDG, int rsaKeySize = 4096);
 			~SecAcceptor() = default;
 		public:
 			/*
