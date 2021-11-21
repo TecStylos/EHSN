@@ -34,34 +34,18 @@ namespace EHSN {
 				uint64_t tStart = 0;
 			};
 		public:
-			DataMetrics(uint64_t nPoints)
-				: m_writeSpeed(nPoints)
-			{}
-		public:
 			void reset() { m_nRead = 0; m_nWritten = 0; }
 			void addReadOp(uint64_t size) { m_nRead += size; ++m_nReadOps; }
 			void addWriteOp(uint64_t size) { m_nWritten += size; ++m_nWriteOps; }
-			void addWriteSpeed(uint64_t size, uint64_t tStart, uint64_t tEnd) { m_writeSpeed.push(SpeedPoint(float(size) / ((tEnd - tStart) / 1000.0f / 1000.0f / 1000.0f), tStart)); }
 			uint64_t nRead() const { return m_nRead; };
 			uint64_t nWritten() const { return m_nWritten; };
-			float avgWriteSpeed() const { return avgSpeed(m_writeSpeed); }
-			float lastWriteSpeed() const { return m_writeSpeed[0].bytesPerSec; }
 			void setAvgReadSpeed(float speed) { m_avgReadSpeed = speed; }
 			float avgReadSpeed() const { return m_avgReadSpeed; }
-		private:
-			static float avgSpeed(const CircularBuffer<SpeedPoint>& buff)
-			{
-				float speedSum = 0.0f;
-				for (uint64_t i = 0; i < buff.size(); ++i)
-					speedSum += buff[i].bytesPerSec;
-				return speedSum / buff.size();
-			}
 		private:
 			uint64_t m_nRead = 0;
 			uint64_t m_nReadOps = 0;
 			uint64_t m_nWritten = 0;
 			uint64_t m_nWriteOps = 0;
-			CircularBuffer<SpeedPoint> m_writeSpeed;
 			float m_avgReadSpeed = 128.0f;
 		};
 

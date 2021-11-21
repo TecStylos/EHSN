@@ -36,7 +36,6 @@ namespace EHSN {
 			uint8_t reserved = 0;
 			PacketID packetID = 0;
 			uint64_t packetSize = 0;
-			float avgWriteSpeed = 1.0f;
 			char padding[12];
 		};
 

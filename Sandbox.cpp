@@ -288,8 +288,6 @@ int main(int argc, const char* argv[], const char* env[]) {
 				std::cout << "   Time:            " << timeInSec << " sec" << std::endl;
 				std::cout << "   Time per packet: " << secPerPacket << " sec" << std::endl;
 				std::cout << "   Data/Time:       " << dataPerSec << " Mbps" << std::endl;
-
-				std::cout << "   Raw write speed: " << (queue.getSock()->getDataMetrics().avgWriteSpeed() / 1000.0f / 1000.0f) << " MBps" << std::endl;
 			}
 			else if (*it == "ping")
 			{

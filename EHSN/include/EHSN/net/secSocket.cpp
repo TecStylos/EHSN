@@ -6,7 +6,7 @@ namespace EHSN {
 	namespace net {
 
 		SecSocket::SecSocket(crypto::RandomDataGenerator rdg, uint32_t nCryptThreads)
-			: m_sock(IOContext::get()), m_rdg(rdg), m_dataMetrics(10)
+			: m_sock(IOContext::get()), m_rdg(rdg)
 		{
 			if (nCryptThreads > 0)
 				m_cryptData.threadPool = std::make_shared<ThreadPool>(nCryptThreads);
@@ -163,9 +163,6 @@ namespace EHSN {
 			}
 
 			uint64_t tStop = CURR_TIME_NS();
-
-			if (measureTime)
-				m_dataMetrics.addWriteSpeed(nWritten, tStart, tStop);
 
 			if (ec)
 				setConnected(false);

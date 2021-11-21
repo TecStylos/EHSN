@@ -259,8 +259,6 @@ namespace EHSN {
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
 
-			packet.header.avgWriteSpeed = m_sock->getDataMetrics().avgWriteSpeed();
-
 			uint64_t nWritten = 0;
 			if ((nWritten = m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false)) < sizeof(PacketHeader))
 			{
@@ -282,8 +280,6 @@ namespace EHSN {
 		void ManagedSocket::sendJobNoEncrypt(Packet packet)
 		{
 			m_currPacketIDBeingSent = packet.header.packetID;
-
-			packet.header.avgWriteSpeed = m_sock->getDataMetrics().avgWriteSpeed();
 
 			uint64_t nWritten = 0;
 			if ((nWritten = m_sock->writeSecure(&packet.header, sizeof(PacketHeader), false)) < sizeof(PacketHeader))
@@ -334,8 +330,6 @@ namespace EHSN {
 			if (m_sock->readSecure(&pack.header, sizeof(PacketHeader)) < sizeof(PacketHeader))
 				goto NextIterationRecvDecrypt;
 
-			m_sock->setAvgReadSpeed(pack.header.avgWriteSpeed);
-
 			if (pack.header.packetSize > 0)
 			{
 				pack.buffer = std::make_shared<PacketBuffer>(pack.header.packetSize); // TODO: Aquire buffer from pool
@@ -383,8 +377,6 @@ namespace EHSN {
 
 			if (m_sock->readSecure(&pack.header, sizeof(pack.header)) < sizeof(pack.header))
 				goto NextIterationRecvNoDecrypt;
-
-			m_sock->setAvgReadSpeed(pack.header.avgWriteSpeed);
 
 			if (pack.header.packetSize > 0)
 			{
