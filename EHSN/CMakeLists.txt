@@ -16,7 +16,7 @@ add_library (
 	"include/EHSN/net/secAcceptor.cpp"
 	"include/EHSN/net/secSocket.cpp"
 	"include/EHSN/ThreadPool.cpp"
- "include/EHSN/CircularBuffer.h")
+	"include/EHSN/CircularBuffer.cpp")
 
 # Cross-Platform Include Directories
 target_include_directories (

@@ -1,28 +1,30 @@
 #pragma once
 
 #include <vector>
+#include <mutex>
 
 namespace EHSN {
-	template<typename T>
 	class CircularBuffer
 	{
 	public:
 		CircularBuffer() = delete;
-		CircularBuffer(uint64_t size)
-			: m_buffer(size)
-		{}
+		CircularBuffer(uint64_t size);
+		CircularBuffer(const CircularBuffer&) = default;
+		CircularBuffer(CircularBuffer&& other);
 	public:
-		void push(const T& obj) { m_buffer[increaseOffset()] = obj; }
-		T& get(uint64_t index) { return m_buffer[virtualToRealIndex(index)]; }
-		const T& get(uint64_t index) const { return m_buffer[virtualToRealIndex(index)]; }
-		T& operator[](uint64_t index) { return get(index); }
-		const T& operator[](uint64_t index) const { return get(index); }
-		uint64_t size() const { return m_buffer.size(); }
+		void read(void* pData, uint64_t size);
+		void write(const void* pData, uint64_t size);
+		uint64_t nReadable() const;
+		uint64_t nWritable() const;
 	private:
-		uint64_t increaseOffset() { return ++offset % m_buffer.size(); }
-		uint64_t virtualToRealIndex(uint64_t virtualIndex) const { return (offset + virtualIndex) % m_buffer.size(); }
+		void moveOffset(std::atomic<uint64_t>& toMove, uint64_t nAdd);
 	private:
-		uint64_t offset;
-		std::vector<T> m_buffer;
+		std::mutex m_mtxRead;
+		std::mutex m_mtxWrite;
+		std::mutex m_mtxOffset;
+		std::atomic<uint64_t> m_readOffset = 0;
+		std::atomic<uint64_t> m_writeOffset = 0;
+		std::vector<char> m_buffer;
+		std::condition_variable m_condNotify;
 	};
 } // namespace EHSN
